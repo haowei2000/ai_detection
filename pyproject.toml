@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "everyai"
+version = "0.1.0"
+description = ""
+authors = ["Wang Haowei <hw_wang@whu.edu.cn>"]
+readme = "README.md"
+packages = [{include = "everyai", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "3.12.7"
+openai = "^1.56.1"
+transformers = {extras = ["torch"], version = "^4.46.3"}
+pandas = "^2.2.3"
+datasets = "^3.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

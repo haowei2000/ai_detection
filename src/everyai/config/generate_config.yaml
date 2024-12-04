@@ -1,0 +1,4 @@
+generator_type: "random"
+model_name: "gpt2"
+model_path: "gpt2"
+api: ""
