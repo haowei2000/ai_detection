@@ -1,0 +1,7 @@
+data_list:
+- data_type: huggingface
+  data_name: human_ai_comparsion
+  file_path: "wanghw/human-ai-comparison"
+  question_column: "question"
+  answer_column: "answer"
+  max_count: 5
