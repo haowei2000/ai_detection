@@ -1,0 +1,15 @@
+bar_config:
+  top_n_topics: 10
+  n_words: 10
+scatter_config:
+  top_n_topics: 10
+heatmap_config:
+  top_n_topics: 10
+hierarchy:
+  top_n_topics: None
+termrank_config:
+  auto_scale: False
+layout_config:
+  font:
+    family: "Times New Roman"
+suffix: "html"

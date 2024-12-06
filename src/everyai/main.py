@@ -1,30 +1,27 @@
 import logging
 
-from sympy import im
+from tqdm import tqdm
 
 from everyai.config.config import get_config
-from everyai.everyai_path import (
-    DATA_LOAD_CONFIG_PATH,
-    GENERATE_CONFIG_PATH,
-    DATA_PATH,
-    MONGO_CONFIG_PATH,
-)
-from everyai.generator.generate import Generator
 from everyai.data_loader.data_load import Data_loader
+from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
 from everyai.data_loader.everyai_dataset import EveryaiDataset
 from everyai.data_loader.mongo_connection import get_mongo_connection
-from tqdm import tqdm
+from everyai.everyai_path import (DATA_LOAD_CONFIG_PATH, DATA_PATH, FIG_PATH,
+                                  GENERATE_CONFIG_PATH, MONGO_CONFIG_PATH)
+from everyai.generator.generate import Generator
+from everyai.topic.bertopic import create_topic
 
 logging.basicConfig(level=logging.INFO)
 
 
 def generate():
-    generate_config = get_config(GENERATE_CONFIG_PATH)
-    logging.info(f"Generate config: {generate_config}")
-    data_config = get_config(DATA_LOAD_CONFIG_PATH)
-    logging.info(f"Data config: {data_config}")
-    for data_config in data_config["data_list"]:
-        for generate_config in generate_config["generate_list"]:
+    generate_list_configs = get_config(GENERATE_CONFIG_PATH)
+    logging.info(f"Generate configs: {generate_list_configs}")
+    data_list_configs = get_config(file_path=DATA_LOAD_CONFIG_PATH)
+    logging.info(f"Data configs: {data_list_configs}")
+    for data_config in data_list_configs["data_list"]:
+        for generate_config in generate_list_configs["generate_list"]:
             generator = Generator(config=generate_config)
             data_loader = Data_loader(
                 data_name=data_config["data_name"],
@@ -33,7 +30,9 @@ def generate():
                 file_path=data_config["file_path"],
                 data_type=data_config["data_type"],
             )
-            qa_datas = data_loader.load_data2list(max_count=data_config["max_count"])
+            qa_datas = data_loader.load_data2list(
+                max_count=data_config["max_count"]
+            )
             everyai_dataset = EveryaiDataset(
                 dataname=data_config["data_name"],
                 ai_list=[generate_config["model_name"]],
@@ -41,7 +40,6 @@ def generate():
             for data in tqdm(
                 qa_datas, desc="Generating data", total=len(qa_datas)
             ):
-                logging.info(f"Generate data: {data["question"]}")
                 ai_response: str = generator.generate(data["question"])
                 everyai_dataset.insert_ai_response(
                     question=data["question"],
@@ -51,8 +49,6 @@ def generate():
                 everyai_dataset.insert_human_response(
                     question=data["question"], human_response=data["answer"]
                 )
-                logging.info(f"AI response: {ai_response}")
-                logging.info(f"Human response: {data['answer']}")
                 everyai_dataset.save(
                     path_or_database=DATA_PATH / everyai_dataset.data_name,
                     format="csv",
@@ -62,5 +58,31 @@ def generate():
                 everyai_dataset.save(path_or_database=db, format="mongodb")
 
 
+def topic():
+    data_list_configs = get_config(file_path=DATA_LOAD_CONFIG_PATH)
+    logging.info(f"Data config: {data_list_configs}")
+    for data_config in data_list_configs["data_list"]:
+        everyai_dataset = EveryaiDataset(
+            dataname=data_config["data_name"],
+            language=data_config["language"],
+        )
+        everyai_dataset.load(format="csv")
+        logging.info(f"Loaded data: {everyai_dataset.data_name}")
+        for catogeory in everyai_dataset.ai_list + ["human"]:
+            logging.info(f"Category: {catogeory}")
+            docs = everyai_dataset.datas[catogeory].tolist()
+            docs = list(
+                map(
+                    lambda x: split_remove_stopwords_punctuation(
+                        x, language=everyai_dataset.language
+                    ),
+                    docs,
+                )
+            )
+            create_topic(docs, FIG_PATH/catogeory)
+            logging.info(f"Topic created for {catogeory}")
+
+
 if __name__ == "__main__":
-    generate()
+    # generate()
+    topic()

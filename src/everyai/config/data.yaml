@@ -5,3 +5,4 @@ data_list:
   question_column: "question"
   answer_column: "answer"
   max_count: 5
+  language: "Chinese"
