@@ -2,7 +2,7 @@ import logging
 
 from tqdm import tqdm
 
-from everyai.classfier.classfier import SklearnClassifer
+from everyai.classfier.classfy import SklearnClassifer
 from everyai.config.config import get_config
 from everyai.data_loader.data_load import Data_loader
 from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
@@ -10,6 +10,7 @@ from everyai.data_loader.everyai_dataset import EveryaiDataset
 from everyai.data_loader.mongo_connection import get_mongo_connection
 from everyai.everyai_path import (BERT_TOPIC_CONFIG_PATH, CLASSFIY_CONFIG_PATH, DATA_LOAD_CONFIG_PATH, DATA_PATH, FIG_PATH,
                                   GENERATE_CONFIG_PATH, MONGO_CONFIG_PATH)
+from everyai.explanation.explain import LimeExplanation, ShapExplanation
 from everyai.generator.generate import Generator
 from everyai.topic.bertopic import create_topic
 
@@ -98,21 +99,23 @@ def classfiy():
         logging.info(f"Loaded data: {everyai_dataset.data_name}")
         texts,labels = everyai_dataset.get_records_with_1ai(["THUDM/glm-4-9b-chat-hf"])
         for classfiy_config in get_config(file_path=CLASSFIY_CONFIG_PATH)["classfier_list"]:
-            classfiy_config["data_name"] = everyai_dataset.data_name
             match classfiy_config["classfier_type"]:
                 case "sklearn":
-                    classfier = SklearnClassifer(
-                        texts=texts,
-                        labels=labels,
+                    text_classfier = SklearnClassifer(
                         **classfiy_config,
                 )
                 case _ :
                     raise ValueError("Classfier type not supported")
-            classfier.train()
-            classfier.test()
-            classfier.save_model()
-            classfier.show_score()
+            text_classfier.load_data(texts,labels,data_name=everyai_dataset.data_name)
+            text_classfier.train()
+            text_classfier.test()
+            text_classfier.save_model()
+            text_classfier.show_score()
             logging.info(f"Model saved for {classfiy_config['model_name']}")
+            lime_explanation = LimeExplanation(classfier=text_classfier)
+            lime_explanation.explain()
+            shap_explanation = ShapExplanation(classfier=text_classfier)
+            shap_explanation.explain()
 
 if __name__ == "__main__":
     # generate()

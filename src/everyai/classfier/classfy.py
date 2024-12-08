@@ -1,26 +1,41 @@
 import logging
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import joblib
 import matplotlib.pyplot as plt
-from regex import R
+import numpy as np
+import pandas as pd
 import sklearn
 import torch
 import xgboost as xgb
-from sklearn.metrics import (
-    accuracy_score,
-    auc,
-    confusion_matrix,
-    f1_score,
-    precision_recall_curve,
-    precision_score,
-    recall_score,
-    roc_curve,
-)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (accuracy_score, auc, confusion_matrix, f1_score,
+                             precision_recall_curve, precision_score,
+                             recall_score, roc_curve)
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
 
-from everyai.everyai_path import RESULT_PATH, MODEL_PATH
-import pandas as pd
+from everyai.everyai_path import MODEL_PATH, RESULT_PATH
+
+
+@dataclass
+class ClassfierData:
+    x: Optional[list] = None
+    y: Optional[list] = None
+    x_train: Optional[list] = None
+    y_train: Optional[list] = None
+    x_valid: Optional[list] = None
+    y_valid: Optional[list] = None
+    x_test: Optional[list] = None
+    y_test: Optional[list] = None
+    y_pred: Optional[list] = None
+    train_indices: Optional[list] = None
+    valid_indices: Optional[list] = None
+    test_indices: Optional[list] = None
 
 
 def evaluate_classification_model(
@@ -118,11 +133,11 @@ def evaluate_classification_model(
 class TextClassifer:
     def __init__(
         self,
-        texts: List[str],
-        labels: List[str],
         model_name: str,
         tokenizer_name: str,
-        data_name: str,
+        texts: List[str] = None,
+        labels: List[str] = None,
+        data_name: str = None,
         device="cpu",
         model=None,
         tokenizer=None,
@@ -137,19 +152,27 @@ class TextClassifer:
         self.tokenizer_name = tokenizer_name
         self.data_name = data_name
         self.score = None
-        self.x = None
-        self.y = None
-        self.x_train = None
-        self.y_train = None
-        self.x_valid = None
-        self.y_valid = None
-        self.x_test = None
-        self.y_test = None
-        self.y_pred = None
+        self.data = ClassfierData()
+        self.classfier_name = f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        self.model_config = None
         self.model_path = (
             MODEL_PATH
             / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
+
+    def load_data(self, texts, labels, data_name):
+        if len(texts) != len(labels):
+            logging.error("Length of texts and labels should be same")
+            raise ValueError("Length of texts and labels should be same")
+        else:
+            self.texts = texts
+            self.labels = labels
+        logging.info(
+            f"Loading data: {data_name} to classfier {self.model_name}"
+        )
+        self.data_name = data_name
+        self.classfier_name = f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        return self.texts, self.labels, self.data_name
 
     def _split_data(self, path: Path):
         try:
@@ -173,10 +196,10 @@ class TextClassifer:
 
     def show_score(self):
         self.score = evaluate_classification_model(
-            self.y_test,
-            self.y_pred,
+            self.data.y_test,
+            self.data.y_pred,
             self.model,
-            self.x_test,
+            self.data.x_test,
             output_path=RESULT_PATH
             / "classfiy_result"
             / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}",
@@ -193,13 +216,10 @@ class TextClassifer:
 
 
 class SklearnClassifer(TextClassifer):
-    def __init__(self, texts, labels, **classfiy_config):
+    def __init__(self, **classfiy_config):
         super().__init__(
-            texts=texts,
-            labels=labels,
             model_name=classfiy_config["model_name"],
             tokenizer_name=classfiy_config["tokenizer_name"],
-            data_name=classfiy_config["data_name"],
         )
         logging.info(f"Classfier config: {classfiy_config}")
         split_size = classfiy_config.get("split_size", {})
@@ -216,14 +236,11 @@ class SklearnClassifer(TextClassifer):
             self.test_size = classfiy_config["split_size"]["test_size"]
             self.valid_size = classfiy_config["split_size"]["valid_size"]
         else:
-            logging.error("Split size not provided or not valid")
-            raise ValueError("Split size not provided or not valid")
-        if len(texts) != len(labels):
-            logging.error("Length of texts and labels should be same")
-            raise ValueError("Length of texts and labels should be same")
-        else:
-            self.texts = texts
-            self.labels = labels
+            logging.warning("Split size not provided or not valid")
+        if self.texts is None or self.labels is None or self.data_name is None:
+            logging.warning(
+                "Data not provided, please use the load_data method"
+            )
         if "device" in classfiy_config and classfiy_config["device"] == "cuda":
             logging.warning(
                 "Cuda is not supported in sklearn and setting device to cpu"
@@ -233,11 +250,11 @@ class SklearnClassifer(TextClassifer):
             self.device = "cpu"
         match classfiy_config["model_name"]:
             case "LogisticRegression":
-                self.model = sklearn.linear_model.LogisticRegression()
+                self.model = LogisticRegression()
             case "RandomForest":
-                self.model = sklearn.ensemble.RandomForestClassifier()
+                self.model = RandomForestClassifier()
             case "SVM":
-                self.model = sklearn.svm.SVC(probability=True)
+                self.model = SVC(probability=True)
             case "XGBoost":
                 self.model = xgb.XGBClassifier()
             case _:
@@ -246,57 +263,88 @@ class SklearnClassifer(TextClassifer):
         match classfiy_config["tokenizer_name"]:
             case "CountVectorizer":
                 self.tokenizer = (
-                    sklearn.feature_extraction.text.CountVectorizer()
+                    CountVectorizer()
                 )
             case "TfidfVectorizer" | "tfidf" | "TFIDF" | "tf-idf" | "TF-IDF":
                 self.tokenizer = (
-                    sklearn.feature_extraction.text.TfidfVectorizer()
+                    TfidfVectorizer()
                 )
             case _:
                 logging.error("Tokenizer not supported")
                 raise ValueError("Tokenizer not supported")
+        if "model_config" in classfiy_config:
+            self.model_config = classfiy_config["model_config"]
+            self.model.set_params(**self.model_config)
+        else:
+            logging.warning("Model config not provided")
+        if "tokenizer_config" in classfiy_config:
+            self.tokenizer_config = classfiy_config["tokenizer_config"]
+            self.tokenizer.set_params(**self.tokenizer_config)
+        else:
+            logging.warning("Tokenizer config not provided")
 
-    def _split_data(self):
-        x_train, x_test, y_train, y_test = (
-            sklearn.model_selection.train_test_split(
-                self.x,
-                self.y,
-                train_size=self.train_size,
+    def _split_data(self, x, y):
+        # 获取原始数据的索引
+        original_indices = (
+            x.index if isinstance(x, pd.DataFrame) else np.arange(x.shape[0])
+        )
+
+        # 第一次划分: 训练集和测试集
+        x_train, x_test, y_train, y_test, train_indices, test_indices = (
+            train_test_split(
+                x,
+                y,
+                original_indices,
                 test_size=self.test_size,
+                random_state=42,
             )
         )
-        x_train, x_valid, y_train, y_valid = (
-            sklearn.model_selection.train_test_split(
+
+        x_train, x_valid, y_train, y_valid, train_indices, valid_indices = (
+            train_test_split(
                 x_train,
                 y_train,
-                train_size=self.train_size,
-                test_size=self.valid_size,
+                train_indices,
+                test_size=self.valid_size
+                / (self.train_size + self.valid_size),
+                random_state=42,
             )
         )
-        self.x_train = x_train
-        self.x_valid = x_valid
-        self.x_test = x_test
-        self.y_train = y_train
-        self.y_valid = y_valid
-        self.y_test = y_test
-        return x_train, x_valid, x_test, y_train, y_valid, y_test
-
-    def _tokenize(self):
-        self.x = self.tokenizer.fit_transform(self.texts)
-        self.y = sklearn.preprocessing.LabelEncoder().fit_transform(
-            self.labels
+        return (
+            x_train,
+            x_valid,
+            x_test,
+            y_train,
+            y_valid,
+            y_test,
+            train_indices,
+            valid_indices,
+            test_indices,
         )
-        return self.x, self.y
+
+    def _tokenize(self, texts, labels):
+        return self.tokenizer.fit_transform(
+            texts
+        ), sklearn.preprocessing.LabelEncoder().fit_transform(labels)
 
     def train(self):
-        self.x, self.y = self._tokenize()
-        x_train, x_valid, x_test, y_train, y_valid, y_test = self._split_data()
-        self.model.fit(self.x_train, self.y_train)
+        self.data.x, self.data.y = self._tokenize(self.texts, self.labels)
+        (
+            self.data.x_train,
+            self.data.x_valid,
+            self.data.x_test,
+            self.data.y_train,
+            self.data.y_valid,
+            self.data.y_test,
+            self.data.train_indices,
+            self.data.valid_indices,
+            self.data.test_indices,
+        ) = self._split_data(self.data.x, self.data.y)
+        self.model.fit(self.data.x_train, self.data.y_train)
         return self.model
 
     def test(self):
-        self.y_pred = self.model.predict(self.x_test)
-        return self.y_pred
+        self.data.y_pred = self.model.predict(self.data.x_test)
 
     def predict(self, x):
         return self.model.predict(x)
