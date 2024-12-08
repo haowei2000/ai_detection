@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Callable
 
 from openai import OpenAI
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -9,14 +10,13 @@ from everyai.everyai_path import GENERATE_CONFIG_PATH
 
 
 class Generator:
-    def __init__(self, config: dict, template: None = None):
+    def __init__(self, config: dict, format: Callable[[str],str] = None):
         self.config = config
         self.generator_type: str = config["generator_type"]
         self.model_name: str = config["model_name"]
         self.model_path: str | Path = config["model_path"]
-        self.config = config
         self.gen_kwargs: dict = {}
-        self.tempalte = template
+        self.format = format
         self.model = None
         self.tokenizer = None
 
@@ -30,7 +30,7 @@ class Generator:
         )
         return result.choices[0].message.content
 
-    def _hugggingface_generate(
+    def _huggingface_generate(
         self,
         input: str,
         model_path_or_name: Path | str,
@@ -40,7 +40,7 @@ class Generator:
         if model_path_or_name is not None:
             match model_path_or_name:
                 case _ if "glm-4-9b-chat" in model_path_or_name:
-                    logging.info("Using glm-4-9b-chatI model")
+                    logging.info("Using glm-4-9b-chat model")
                     logging.info(f"load model from {model_path_or_name}")
                     if self.tokenizer is None:
                         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -66,7 +66,6 @@ class Generator:
                             "content": input,
                         },
                     ]
-
                     inputs = self.tokenizer.apply_chat_template(
                         message,
                         return_tensors="pt",
@@ -84,15 +83,16 @@ class Generator:
                         out[0][input_len:], skip_special_tokens=True
                     )
                 case _:
-                    logging.error(f"Unsupport model: {model_path_or_name}")
-        else:
-            logging.error(f"Model path or name is None: {model_path_or_name}")
+                    logging.error(f"Unsupported model: {model_path_or_name}")
         return generated_text
 
     def generate(self, message: str) -> str:
         response = ""
-        if self.tempalte is not None:
-            message = self.tempalte.format(message)
+        if self.format is not None:
+            message = self.format(message)
+            logging.info(f"Formatted input: {message}")
+        else:
+            logging.info("Input was not formatted, using original input")
         match self.generator_type:
             case "openai":
                 if "api" in self.config.keys():
@@ -103,7 +103,7 @@ class Generator:
                     self.api_key: str = self.config["api_key"]
                 else:
                     self.api_key = "0"
-                logging.info("API key is not provided and was set to 0")
+                    logging.info("API key is not provided and was set to 0")
                 response = self._openai_generate(
                     input=message,
                     base_url=self.api,
@@ -117,13 +117,13 @@ class Generator:
                 else:
                     logging.info("Generation kwargs is not provided")
                 if self.model_path is not None:
-                    response = self._hugggingface_generate(
+                    response = self._huggingface_generate(
                         input=message,
                         model_path_or_name=self.model_path,
                         gen_kwargs=self.gen_kwargs,
                     )
                 elif self.model_name is not None:
-                    response = self._hugggingface_generate(
+                    response = self._huggingface_generate(
                         input=message,
                         model_path_or_name=self.model_name,
                         gen_kwargs=self.gen_kwargs,
@@ -132,7 +132,7 @@ class Generator:
                     logging.error("Model path and model name is None")
             case _:
                 logging.error(
-                    f"Generator type is not supported {self.generator_type}"
+                    f"Generator type '{self.generator_type}' is not supported"
                 )
         return response
 

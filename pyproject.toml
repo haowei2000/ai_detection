@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Wang Haowei <hw_wang@whu.edu.cn>"]
 readme = "README.md"
-packages = [{include = "everyai", from = "src"}]
+packages = [{ include = "everyai", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "3.12.7"
@@ -32,7 +32,8 @@ sse-starlette = ">=2.1.3"
 bitsandbytes = ">=0.43.3"
 bertopic = "^0.16.4"
 jieba = "^0.42.1"
-
+scikit-learn = "^1.5.2"
+xgboost = "^2.1.3"
 
 [build-system]
 requires = ["poetry-core"]
@@ -41,3 +42,9 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 generate = "everyai.main:generate"
 topic = "everyai.main:topic"
+classfiy = "everyai.main:classfiy"
+
+[[tool.poetry.source]]
+name = "nvidia"
+url = "https://pypi.nvidia.com"
+priority = "supplemental"

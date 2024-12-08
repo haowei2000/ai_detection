@@ -1,0 +1,8 @@
+classfier_list:
+- model_name: "SVM"
+  tokenizer_name: "TfidfVectorizer"
+  split_size:
+    train_size: 0.7
+    test_size: 0.15
+    valid_size: 0.15
+  classfier_type: "sklearn"

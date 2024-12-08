@@ -2,12 +2,13 @@ import logging
 
 from tqdm import tqdm
 
+from everyai.classfier.classfier import SklearnClassifer
 from everyai.config.config import get_config
 from everyai.data_loader.data_load import Data_loader
 from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
 from everyai.data_loader.everyai_dataset import EveryaiDataset
 from everyai.data_loader.mongo_connection import get_mongo_connection
-from everyai.everyai_path import (DATA_LOAD_CONFIG_PATH, DATA_PATH, FIG_PATH,
+from everyai.everyai_path import (BERT_TOPIC_CONFIG_PATH, CLASSFIY_CONFIG_PATH, DATA_LOAD_CONFIG_PATH, DATA_PATH, FIG_PATH,
                                   GENERATE_CONFIG_PATH, MONGO_CONFIG_PATH)
 from everyai.generator.generate import Generator
 from everyai.topic.bertopic import create_topic
@@ -68,9 +69,11 @@ def topic():
         )
         everyai_dataset.load(format="csv")
         logging.info(f"Loaded data: {everyai_dataset.data_name}")
+        topic_config = get_config(file_path=BERT_TOPIC_CONFIG_PATH)
         for catogeory in everyai_dataset.ai_list + ["human"]:
             logging.info(f"Category: {catogeory}")
             docs = everyai_dataset.datas[catogeory].tolist()
+            logging.info(f"Number of documents: {len(docs)}")
             docs = list(
                 map(
                     lambda x: split_remove_stopwords_punctuation(
@@ -79,9 +82,37 @@ def topic():
                     docs,
                 )
             )
-            create_topic(docs, FIG_PATH/catogeory)
+            create_topic(docs, FIG_PATH/everyai_dataset.data_name/catogeory,topic_config=topic_config)
             logging.info(f"Topic created for {catogeory}")
 
+
+def classfiy():
+    data_list_configs = get_config(file_path=DATA_LOAD_CONFIG_PATH)
+    logging.info(f"Data config: {data_list_configs}")
+    for data_config in data_list_configs["data_list"]:
+        everyai_dataset = EveryaiDataset(
+            dataname=data_config["data_name"],
+            language=data_config["language"],
+        )
+        everyai_dataset.load(format="mongodb")
+        logging.info(f"Loaded data: {everyai_dataset.data_name}")
+        texts,labels = everyai_dataset.get_records_with_1ai(["THUDM/glm-4-9b-chat-hf"])
+        for classfiy_config in get_config(file_path=CLASSFIY_CONFIG_PATH)["classfier_list"]:
+            classfiy_config["data_name"] = everyai_dataset.data_name
+            match classfiy_config["classfier_type"]:
+                case "sklearn":
+                    classfier = SklearnClassifer(
+                        texts=texts,
+                        labels=labels,
+                        **classfiy_config,
+                )
+                case _ :
+                    raise ValueError("Classfier type not supported")
+            classfier.train()
+            classfier.test()
+            classfier.save_model()
+            classfier.show_score()
+            logging.info(f"Model saved for {classfiy_config['model_name']}")
 
 if __name__ == "__main__":
     # generate()

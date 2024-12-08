@@ -4,5 +4,5 @@ data_list:
   file_path: "wanghw/human-ai-comparison"
   question_column: "question"
   answer_column: "answer"
-  max_count: 5
+  max_count: 200
   language: "Chinese"
