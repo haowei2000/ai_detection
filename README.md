@@ -68,43 +68,50 @@ To get a local copy up and running follow these simple steps.
 
 1. Install [Poetry](https://python-poetry.org/) from the offical website.
 2. Clone the repo
-  ```sh
-  git clone https://github.com/haowei2000/everyAI.git
-  ```
-3.Make sure the python version is 3.12.7.
-  ```sh
-  python --version
-  ```
-  If the python is mot compatible, you can install python environment with ```pyenv``` or [conda](https://anaconda.org/anaconda/conda).
+
+    ```sh
+    git clone https://github.com/haowei2000/everyAI.git
+    ```
+
+3. Make sure the python version is 3.12.7.
+
+    ```sh
+    python --version
+    ```
+
+    If the python is mot compatible, you can install python environment with `pyenv` or [conda](https://anaconda.org/anaconda/conda).
+
 4. Install the dependencies with poetry
-  ```sh
-  poetry install
-  ```
+
+    ```sh
+    poetry install
+    ```
+
 5. Run the project
 
-- Generate AI response with the dataset in [data.yaml](src/everyai/config/data.yaml) and the AI model in [generate.yaml](src/everyai/config/generate.yaml)
+      - Generate AI response with the dataset in [data.yaml](src/everyai/config/data.yaml) and the AI model in [generate.yaml](src/everyai/config/generate.yaml)
 
-  ```sh
-  poetry run generate
-  ```
+        ```sh
+        poetry run generate
+        ```
 
-- Perform topic analysis with bertopic([topic.yaml](src/everyai/config/topic.yaml)), please run the command after generating the AI response.
+      - Perform topic analysis with bertopic([topic.yaml](src/everyai/config/topic.yaml)), please run the command after generating the AI response.
 
-  ```sh
-  poetry run topic
-  ```
+        ```sh
+        poetry run topic
+        ```
 
-- Classify between human responses and AI responses with the dataset in [data.yaml](src/everyai/config/data.yaml) and the classfier model in [classify.yaml](src/everyai/config/classify.yaml), and make explaination with `lime` ([lime.yaml](src/everyai/config/lime.yaml)) and `shap` (shap[shap.yaml](src/everyai/config/shap.yaml))
+      - Classify between human responses and AI responses with the dataset in [data.yaml](src/everyai/config/data.yaml) and the classfier model in [classify.yaml](src/everyai/config/classify.yaml), and make explaination with `lime` ([lime.yaml](src/everyai/config/lime.yaml)) and `shap` (shap[shap.yaml](src/everyai/config/shap.yaml))
 
-  ```sh
-  poetry run classfiy
-  ```
+        ```sh
+        poetry run classfiy
+        ```
 
-- Run the generate, topic, classfiy together
-
-  ```sh
-  poetry run every
-  ```
+      - Run the generate, topic, classfiy together
+  
+        ```sh
+        poetry run every
+        ```
 
 ## Optional Features
 
@@ -116,19 +123,19 @@ There are some ways to use your dataset:
 
 1. Local file
 
-   Supported file types: .csv, .json, .txt, .jsonl
-   Open the [data.yaml](src/everyai/config/data.yaml), add a new list item under the `data_list` key, and specify the path to the file or the data_name(If only specify the data_name, please make sure the `{data_name}.{data.type}` file in the [data_folder](src/everyai/data)).
+    Supported file types: .csv, .json, .txt, .jsonl
+    Open the [data.yaml](src/everyai/config/data.yaml), add a new list item under the `data_list` key, and specify the path to the file or the data_name(If only specify the data_name, please make sure the `{data_name}.{data.type}` file in the [data_folder](src/everyai/data)).
 
-   For example, if you have a csv file named `human_ai_comparsion.csv` in the [data_folder](src/everyai/data), you can add the following configuration to the [data.yaml](src/everyai/config/data.yaml):
+    For example, if you have a csv file named `human_ai_comparsion.csv` in the [data_folder](src/everyai/data), you can add the following configuration to the [data.yaml](src/everyai/config/data.yaml):
 
-   ```yaml
+    ```yaml
     - data_type: csv
       data_name: human_ai_comparsion
       file_path: 
       question_column: question
       answer_column: answer
       max_count: 200
-   ```
+    ```
 
 2. Huggingface dataset
     Open the [data.yaml](src/everyai/config/data.yaml), add a new list item under the `data_list` key, and specify the `data_type` as `huggingface`, the `data_name` as the dataset name.
@@ -144,12 +151,12 @@ There are some ways to use your dataset:
         max_count: 200
     ```
 
-3.Optional: you can specify a filter method in [src/everyai/data_loader/filter.py] or just change the default filter method in [src/everyai/data_loader/data_loader.py]
+3. Optional: you can specify a filter method in [src/everyai/data_loader/filter.py] or just change the default filter method in [src/everyai/data_loader/data_loader.py]
 
-  ```python
-  def default_filter(self, data: pd.DataFrame) -> pd.DataFrame:
-      return data
-  ```
+    ```python
+    def default_filter(self, data: pd.DataFrame) -> pd.DataFrame:
+        return data
+    ```
 
 ### **Feature 2: Choose Generate AI model**
 
@@ -161,17 +168,17 @@ There are 2 ways to generate AI response:
 
 2. Use the model in huggingface, you can specify the `model_name` in the [generate.yaml](src/everyai/config/generate.yaml)
 
-   For example, if you want to use the `THUDM/glm-4-9b-chat-hf` model in huggingface, you can add the following configuration to the [generate.yaml](src/everyai/config/generate.yaml):
+      For example, if you want to use the `THUDM/glm-4-9b-chat-hf` model in huggingface, you can add the following configuration to the [generate.yaml](src/everyai/config/generate.yaml):
 
-   ```yaml
-    model_name: THUDM/glm-4-9b-chat-hf
-   ```
+      ```yaml
+      model_name: THUDM/glm-4-9b-chat-hf
+      ```
 
-   or download the model to local and setting the model_path
+      or download the model to local and setting the model_path
 
-  ```yaml
-    model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
-  ```
+      ```yaml
+      model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
+      ```
 
 # Directory Structure
 
@@ -237,15 +244,15 @@ This project is licensed under the MIT License. See [LICENSE.txt](https://github
 - [xxxxxxxxxxxxxx](https://connoratherton.com/loaders)
 
 <!-- links -->
-[contributors-shield]: https://img.shields.io/github/contributors/shaojintian/Best_README_template.svg?style=flat-square
+[contributors-shield]: https://img.shields.io/github/contributors/haowei2000/everyAI.svg?style=flat-square
 [contributors-url]: https://github.com/haowei2000/everyAI/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/shaojintian/Best_README_template.svg?style=flat-square
+[forks-shield]: https://img.shields.io/github/forks/haowei2000/everyAI.svg?style=flat-square
 [forks-url]: https://github.com/haowei2000/everyAI/network/members
-[stars-shield]: https://img.shields.io/github/stars/shaojintian/Best_README_template.svg?style=flat-square
+[stars-shield]: https://img.shields.io/github/stars/haowei2000/everyAI.svg?style=flat-square
 [stars-url]: https://github.com/haowei2000/everyAI/stargazers
-[issues-shield]: https://img.shields.io/github/issues/shaojintian/Best_README_template.svg?style=flat-square
-[issues-url]: https://img.shields.io/github/issues/shaojintian/Best_README_template.svg
-[license-shield]: https://img.shields.io/github/license/shaojintian/Best_README_template.svg?style=flat-square
+[issues-shield]: https://img.shields.io/github/issues/haowei2000/everyAI.svg?style=flat-square
+[issues-url]: https://img.shields.io/github/issues/haowei2000/everyAI.svg
+[license-shield]: https://img.shields.io/github/license/haowei2000/everyAI.svg?style=flat-square
 [license-url]: https://github.com/haowei2000/everyAI/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/shaojintian
