@@ -117,6 +117,11 @@ def classfiy():
             shap_explanation = ShapExplanation(classfier=text_classfier)
             shap_explanation.explain()
 
+def main():
+    generate()
+    topic()
+    classfiy()
+
 if __name__ == "__main__":
     # generate()
-    topic()
+    main()

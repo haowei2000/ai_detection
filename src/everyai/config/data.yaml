@@ -1,8 +1,14 @@
 data_list:
 - data_type: huggingface
   data_name: human_ai_comparsion
-  file_path: "wanghw/human-ai-comparison"
-  question_column: "question"
+  file_path: wanghw/human-ai-comparison
+  question_column: question
   answer_column: "answer"
   max_count: 200
-  language: "Chinese"
+  language: Chinese
+- data_type: csv
+  data_name: human_ai_comparsion
+  file_path: wanghw/human-ai-comparison
+  question_column: question
+  answer_column: answer
+  max_count: 200

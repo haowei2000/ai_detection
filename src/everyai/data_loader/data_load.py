@@ -5,15 +5,8 @@ from typing import Callable
 import pandas as pd
 from datasets import load_dataset
 
-
-def default_filter(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Default filter to get only human data,
-    If you want to filter the data based on some condition,
-    please provide the filter function in the Data_loader class
-    """
-    return df[df["label"] == "human"]
-
+from everyai.everyai_path import DATA_PATH
+from everyai.data_loader.filter import default_filter
 
 class Data_loader:
     def __init__(
@@ -27,7 +20,7 @@ class Data_loader:
     ):
         self.data_name = data_name
         if file_path is None:
-            self.file_name_or_path = data_name
+            self.file_name_or_path =DATA_PATH/data_name
         else:
             self.file_name_or_path = file_path
         if data_type is None:

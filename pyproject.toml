@@ -45,6 +45,7 @@ build-backend = "poetry.core.masonry.api"
 generate = "everyai.main:generate"
 topic = "everyai.main:topic"
 classfiy = "everyai.main:classfiy"
+every = "everyai.main:main"
 
 [[tool.poetry.source]]
 name = "nvidia"
