@@ -16,7 +16,7 @@ EveryAI: For any QA text dataset (question and human response), generate AI resp
 
 <p align="center">
   <a href="https://github.com/haowei2000/everyAI/">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="images/structure.png" alt="Logo" width="600" height="740">
   </a>
 
   <h3 align="center">Project Structure</h3>
@@ -39,20 +39,48 @@ EveryAI: For any QA text dataset (question and human response), generate AI resp
 
 - [EveryAI](#everyai)
 - [Content](#content)
+- [Directory Structure](#directory-structure)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [**Installation Steps**](#installation-steps)
   - [Optional Features](#optional-features)
     - [**Feature 1: Use your dataset**](#feature-1-use-your-dataset)
     - [**Feature 2: Choose Generate AI model**](#feature-2-choose-generate-ai-model)
-- [Directory Structure](#directory-structure)
-- [Architecture](#architecture)
+    - [**Feature 3: Choose Classfier model**](#feature-3-choose-classfier-model)
+    - [**Feature 4: Use the mongodb database to save and load the dataset**](#feature-4-use-the-mongodb-database-to-save-and-load-the-dataset)
 - [Frameworks Used](#frameworks-used)
 - [Contributors](#contributors)
 - [Version Control](#version-control)
 - [Authors](#authors)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
+
+# Directory Structure
+
+```
+filetree 
+├── poetry.lock
+├── pyproject.toml
+├── LICENSE.txt
+├── README.md
+├── /images/
+├── /src/
+│  ├── /everyai/
+│  │  ├── /config/
+│  │  └── /data/
+│  │  └── /model/
+│  │  └── /fig/
+│  │  └── /result/
+│  │  └── /data_loader/
+│  │  └── /generator/
+│  │  └── /topic/
+│  │  └── /classfier/
+│  │  └── /explaination/
+├── /tests/
+└── /util/
+
+```
+
 
 # Getting Started
 
@@ -140,7 +168,7 @@ There are some ways to use your dataset:
 2. Huggingface dataset
     Open the [data.yaml](src/everyai/config/data.yaml), add a new list item under the `data_list` key, and specify the `data_type` as `huggingface`, the `data_name` as the dataset name.
 
-    If you have a huggingface dataset in `https://huggingface.co/datasets/wanghw/human-ai-comparison`, you can add the following configuration to the [data.yaml](src/everyai/config/data.yaml):
+    If you have a huggingface dataset in [https://huggingface.co/datasets/wanghw/human-ai-comparison](https://huggingface.co/datasets/wanghw/human-ai-comparison), you can add the following configuration to the [data.yaml](src/everyai/config/data.yaml):
   
     ```yaml
       - data_type: huggingface
@@ -180,43 +208,52 @@ There are 2 ways to generate AI response:
       model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
       ```
 
-# Directory Structure
+### **Feature 3: Choose Classfier model**
 
-e.g.:
+There are 3 optional classfier model to detect the human response and AI response:
 
-```
-filetree 
-├── ARCHITECTURE.md
-├── LICENSE.txt
-├── README.md
-├── /account/
-├── /bbs/
-├── /docs/
-│  ├── /rules/
-│  │  ├── backend.txt
-│  │  └── frontend.txt
-├── manage.py
-├── /oa/
-├── /static/
-├── /templates/
-├── useless.md
-└── /util/
+1. Use the sklearn model.
 
-```
+    You can specify the `model_name` in the [classify.yaml](src/everyai/config/classfiy.yaml)
 
-# Architecture
+    For example, if you want to use the `SVM` model and `Tf-idf` tokenizer in sklearn, you can add the following configuration to the [classify.yaml](src/everyai/config/classify.yaml):
 
-Please read [ARCHITECTURE.md](https://github.com/haowei2000/everyAI/blob/master/ARCHITECTURE.md) for details on the architecture of this project.
+    ```yaml
+    classfier_list:
+    - model_name: "SVM"
+      tokenizer_name: "TfidfVectorizer"
+      split_size:
+        train_size: 0.7
+        test_size: 0.15
+        valid_size: 0.15
+      classfier_type: "sklearn"
+      model_config:
+        gamma: "auto"
+      tokenizer_config:
+        encoding: "utf-8"
+    ```
+
+2. Use the model in huggingface
+
+    TODO: add the huggingface model code
+
+3. Use the model in pytorch
+
+    TODO: add the pytorch model code
+
+### **Feature 4: Use the mongodb database to save and load the dataset**
+
+You can use the mongodb database to save and load the dataset, just set the mongodb connection url and the database name in the [mongodb.yaml](src/everyai/config/mongodb.yaml)
 
 # Frameworks Used
 
-- [xxxxxxx](https://getbootstrap.com)
-- [xxxxxxx](https://jquery.com)
-- [xxxxxxx](https://laravel.com)
+- [Poetry](https://python-poetry.org)
+- [Huggingface](https://huggingface.co)
 
 # Contributors
 
-Please read **CONTRIBUTING.md** for details on the developers who contributed to this project.
+- [Haowei Wang](http://haowei2000.github.io/)
+- [Fan Wang](https://github.com/kangyisheng123456)
 
 # Version Control
 
@@ -224,10 +261,7 @@ This project uses Git for version control. You can check the available versions 
 
 # Authors
 
-xxx@xxxx
-
-Zhihu: xxxx &ensp; QQ: xxxxxx
-
+[E-mail](hw_wang@whu.edu.cn)
 *You can also see the list of contributors who participated in this project.*
 
 # License
@@ -241,7 +275,11 @@ This project is licensed under the MIT License. See [LICENSE.txt](https://github
 - [Choose an Open Source License](https://choosealicense.com)
 - [GitHub Pages](https://pages.github.com)
 - [Animate.css](https://daneden.github.io/animate.css)
-- [xxxxxxxxxxxxxx](https://connoratherton.com/loaders)
+- [isort](https://connoratherton.com/loaders)
+- [LLaMA-Factory](https://llamafactory.readthedocs.io/zh-cn/latest/getting_started/inference.html)
+- [Huggingface](https://huggingface.co)
+- [Poetry](https://python-poetry.org)
+- [Best_README_template](https://github.com/shaojintian/Best_README_template)
 
 <!-- links -->
 [contributors-shield]: https://img.shields.io/github/contributors/haowei2000/everyAI.svg?style=flat-square
