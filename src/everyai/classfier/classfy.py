@@ -445,7 +445,6 @@ class PytorchClassifer(TextClassifer):
             model,
             tokenizer,
         )
-        return self.model
 
     def test(self, x_test, y_test):
         return self.model
