@@ -172,9 +172,8 @@ class TextClassifer:
         if len(texts) != len(labels):
             logging.error("Length of texts and labels should be same")
             raise ValueError("Length of texts and labels should be same")
-        else:
-            self.texts = texts
-            self.labels = labels
+        self.texts = texts
+        self.labels = labels
         logging.info(f"Loading data: {data_name} to classfier {self.model_name}")
         self.data_name = data_name
         self.classfier_name = (
