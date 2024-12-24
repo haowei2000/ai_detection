@@ -190,16 +190,20 @@ class TextClassifer:
             raise
         return self.model
 
-    def _tokenize(self):
+    @staticmethod
+    def _tokenize():
         return None
 
-    def train(self):
+    @staticmethod
+    def train():
         return None
 
-    def test(self):
+    @staticmethod
+    def test():
         return None
 
-    def predict(self):
+    @staticmethod
+    def predict():
         return None
 
     def show_score(self):

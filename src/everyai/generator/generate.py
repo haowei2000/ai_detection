@@ -20,8 +20,9 @@ class Generator:
         self.model = None
         self.tokenizer = None
 
+    @staticmethod
     def _openai_generate(
-        self, input: str, base_url: str, model_name: str, api_key: str = "0"
+        input: str, base_url: str, model_name: str, api_key: str = "0"
     ) -> str:
         client = OpenAI(api_key=api_key, base_url=base_url)
         messages = [{"role": "user", "content": input}]
