@@ -5,8 +5,9 @@ from typing import Callable
 import pandas as pd
 from datasets import load_dataset
 
-from everyai.everyai_path import DATA_PATH
 from everyai.data_loader.filter import default_filter
+from everyai.everyai_path import DATA_PATH
+
 
 class Data_loader:
     def __init__(
@@ -20,7 +21,7 @@ class Data_loader:
     ):
         self.data_name = data_name
         if file_path is None:
-            self.file_name_or_path =DATA_PATH/data_name
+            self.file_name_or_path = DATA_PATH / data_name
         else:
             self.file_name_or_path = file_path
         if data_type is None:
@@ -32,10 +33,7 @@ class Data_loader:
         self.filter = filter
 
     def load_data2list(self, max_count: int = None):
-        if (
-            Path(self.file_name_or_path).exists()
-            or self.file_type == "huggingface"
-        ):
+        if Path(self.file_name_or_path).exists() or self.file_type == "huggingface":
             match self.file_type:
                 case "csv":
                     data = pd.read_csv(self.file_name_or_path)
@@ -69,9 +67,7 @@ class Data_loader:
         if max_count is not None and data is not None:
             data = data.head(max_count)
         else:
-            logging.info(
-                "Max count is None and all the records will be loaded"
-            )
+            logging.info("Max count is None and all the records will be loaded")
         data.rename(
             columns={
                 self.question_column: "question",

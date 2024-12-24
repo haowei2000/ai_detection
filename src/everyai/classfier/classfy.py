@@ -180,8 +180,7 @@ class TextClassifer:
         )
         self.model_config = None
         self.model_path = (
-            MODEL_PATH
-            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
+            MODEL_PATH / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
         self.pipeline = pipeline if pipeline is not None else None
 
@@ -189,12 +188,9 @@ class TextClassifer:
         if len(texts) != len(labels):
             logging.error("Length of texts and labels should be same")
             raise ValueError("Length of texts and labels should be same")
-        else:
-            self.texts = texts
-            self.labels = labels
-        logging.info(
-            f"Loading data: {data_name} to classfier {self.model_name}"
-        )
+        self.texts = texts
+        self.labels = labels
+        logging.info(f"Loading data: {data_name} to classfier {self.model_name}")
         self.data_name = data_name
         self.classfier_name = (
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
@@ -292,9 +288,7 @@ class SklearnClassifer(TextClassifer):
         else:
             logging.warning("Split size not provided or not valid")
         if self.texts is None or self.labels is None or self.data_name is None:
-            logging.warning(
-                "Data not provided, please use the load_data method"
-            )
+            logging.warning("Data not provided, please use the load_data method")
         if "device" in classfiy_config and classfiy_config["device"] == "cuda":
             logging.warning(
                 "Cuda is not supported in sklearn and setting device to cpu"
@@ -363,8 +357,7 @@ class SklearnClassifer(TextClassifer):
                 x_train,
                 y_train,
                 train_indices,
-                test_size=self.valid_size
-                / (self.train_size + self.valid_size),
+                test_size=self.valid_size / (self.train_size + self.valid_size),
                 random_state=42,
             )
         )

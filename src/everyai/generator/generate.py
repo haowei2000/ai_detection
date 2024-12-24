@@ -10,7 +10,7 @@ from everyai.everyai_path import GENERATE_CONFIG_PATH
 
 
 class Generator:
-    def __init__(self, config: dict, format: Callable[[str],str] = None):
+    def __init__(self, config: dict, format: Callable[[str], str] = None):
         self.config = config
         self.generator_type: str = config["generator_type"]
         self.model_name: str = config["model_name"]

@@ -23,9 +23,7 @@ class EveryaiDataset:
         if datas is not None:
             self.datas: pd.DataFrame = datas
         else:
-            self.datas: pd.DataFrame = pd.DataFrame(
-                columns=["question", "human"]
-            )
+            self.datas: pd.DataFrame = pd.DataFrame(columns=["question", "human"])
             if ai_list is not None:
                 for ai_name in ai_list:
                     self.datas[ai_name] = None
@@ -40,12 +38,12 @@ class EveryaiDataset:
         self.datas[ai_name] = None
         logging.info(f"Add model: {ai_name}")
 
-    def get_records_with_1ai(self, ai_list: list[str]=None):
+    def get_records_with_1ai(self, ai_list: list[str] = None):
         texts = []
         labels = []
         if ai_list is None:
             ai_list = self.ai_list
-        for label in ["human"]+ai_list:
+        for label in ["human"] + ai_list:
             texts.extend(self.datas[label])
             labels.extend([label] * len(self.datas[label]))
         return texts, labels
@@ -59,9 +57,7 @@ class EveryaiDataset:
         if question_exists:
             self._update_new_row(question, ai_name, ai_response)
         else:
-            self.datas.loc[self.datas["question"] == question, ai_name] = (
-                ai_response
-            )
+            self.datas.loc[self.datas["question"] == question, ai_name] = ai_response
 
     def insert_human_response(self, question, human_response: str):
         if self.datas[self.datas["question"] == question].empty:
@@ -119,10 +115,7 @@ class EveryaiDataset:
                 path_or_database = Path(path_or_database)
             if not isinstance(path_or_database, Path):
                 logging.error(f"Invalid file name: {path_or_database}")
-            if (
-                path_or_database is not None
-                and path_or_database.suffix != f".{format}"
-            ):
+            if path_or_database is not None and path_or_database.suffix != f".{format}":
                 logging.warning(f"Change file format to {format}")
                 path_or_database = path_or_database.with_suffix(f".{format}")
             else:

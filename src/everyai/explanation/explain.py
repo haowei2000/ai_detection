@@ -1,4 +1,5 @@
 import logging
+from calendar import c
 from pathlib import Path
 
 import shap
@@ -48,10 +49,12 @@ class ShapExplanation(Explanation):
         output_path.exists() or output_path.mkdir(parents=True)
         test_indices = self.classfier.data.test_indices.tolist()
         test_text = [self.classfier.texts[i] for i in test_indices]
-        explainer = shap.Explainer(self.pipeline.predict_proba, masker=shap.maskers.Text())
+        explainer = shap.Explainer(
+            self.pipeline.predict_proba, masker=shap.maskers.Text()
+        )
         for i, text in enumerate(test_text):
             shap_values = explainer([text])
             html_output = shap.plots.text(shap_values, display=False)
-            with open(output_path/f"text{i}", "w", encoding="utf-8") as f:
+            with open(output_path / f"text{i}", "w", encoding="utf-8") as f:
                 f.write(html_output)
         logging.info(f"Shap explanation saved to {output_path}")
