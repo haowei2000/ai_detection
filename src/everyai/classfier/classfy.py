@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sklearn
-from sklearn.pipeline import make_pipeline
 import torch
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
@@ -26,6 +25,7 @@ from sklearn.metrics import (
     roc_curve,
 )
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
 
 from everyai.everyai_path import MODEL_PATH, RESULT_PATH
@@ -238,7 +238,7 @@ class TextClassifer:
         return self.model
 
 
-def _init_sklearn_pipeline(pipeline_config:list[dict]):
+def _init_sklearn_pipeline(pipeline_config: list[dict]):
     step_dict = {
         "tf_idf": TfidfVectorizer,
         "count_vectorizer": CountVectorizer,
@@ -259,9 +259,7 @@ def _init_sklearn_pipeline(pipeline_config:list[dict]):
         if step_name in step_dict:
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
-            logging.warning(
-                f"Step {step_name} not recognized and will be skipped"
-            )
+            logging.warning(f"Step {step_name} not recognized and will be skipped")
     return make_pipeline(*[step[1] for step in steps])
 
 

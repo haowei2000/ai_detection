@@ -63,9 +63,7 @@ class EveryaiDataset:
         if self.datas[self.datas["question"] == question].empty:
             self._update_new_row(question, "human", human_response)
         else:
-            self.datas.loc[self.datas["question"] == question, "human"] = (
-                human_response
-            )
+            self.datas.loc[self.datas["question"] == question, "human"] = human_response
 
     # TODO Rename this here and in `insert_ai_response` and `insert_human_response`
     def _update_new_row(self, question, arg1, arg2):

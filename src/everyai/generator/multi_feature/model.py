@@ -1,5 +1,6 @@
 import torch
-x= torch.arange(12)
+
+x = torch.arange(12)
 print(x)
 print(x.shape)
-torch.randn((3,4))
+torch.randn((3, 4))
