@@ -10,8 +10,10 @@ def create_topic(
     docs: list[str],
     output_folder: Union[str, Path],
     embedding_model=None,
-    topic_config: dict = {},
+    topic_config: dict = None,
 ) -> BERTopic:
+    if topic_config is None:
+        topic_config = {}
     topic_model = BERTopic(embedding_model=embedding_model, min_topic_size=5)
 
     topic_model.fit_transform(docs)
