@@ -1,4 +1,3 @@
-from calendar import c
 import logging
 from pathlib import Path
 
@@ -26,10 +25,7 @@ class LimeExplanation(Explanation):
         self.output_path = FIG_PATH / "lime" / classfier.classfier_name
 
     def explain(self, output_path: Path = None):
-        if output_path is None:
-            output_path = self.output_path
-        else:
-            output_path = output_path
+        output_path = self.output_path if output_path is None else output_path
         output_path.exists() or output_path.mkdir(parents=True)
         test_indices = self.classfier.data.test_indices.tolist()
         test_text = [self.classfier.texts[i] for i in test_indices]
@@ -48,10 +44,7 @@ class ShapExplanation(Explanation):
         self.output_path = FIG_PATH / "shap" / classfier.classfier_name
 
     def explain(self, output_path: Path = None):
-        if output_path is None:
-            output_path = self.output_path
-        else:
-            output_path = output_path
+        output_path = self.output_path if output_path is None else output_path
         output_path.exists() or output_path.mkdir(parents=True)
         test_indices = self.classfier.data.test_indices.tolist()
         test_text = [self.classfier.texts[i] for i in test_indices]

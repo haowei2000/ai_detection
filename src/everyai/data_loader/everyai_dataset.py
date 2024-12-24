@@ -19,10 +19,7 @@ class EveryaiDataset:
         language: str = "English",
     ):
         self.data_name: str = dataname
-        if ai_list is not None:
-            self.ai_list = ai_list
-        else:
-            self.ai_list = []
+        self.ai_list = ai_list if ai_list is not None else []
         if datas is not None:
             self.datas: pd.DataFrame = datas
         else:
@@ -60,14 +57,7 @@ class EveryaiDataset:
             logging.info(f"AI {ai_name} exists in the dataset")
         question_exists = self.datas[self.datas["question"] == question].empty
         if question_exists:
-            logging.info(f"Inserting new question: {question}")
-            new_row = pd.DataFrame(
-                {"question": [question], ai_name: [ai_response]}
-            )
-            self.datas = pd.concat(
-                [self.datas, new_row],
-                ignore_index=True,
-            )
+            self._update_new_row(question, ai_name, ai_response)
         else:
             self.datas.loc[self.datas["question"] == question, ai_name] = (
                 ai_response
@@ -75,18 +65,17 @@ class EveryaiDataset:
 
     def insert_human_response(self, question, human_response: str):
         if self.datas[self.datas["question"] == question].empty:
-            logging.info(f"Inserting new question: {question}")
-            new_row = pd.DataFrame(
-                {"question": [question], "human": [human_response]}
-            )
-            self.datas = pd.concat(
-                [self.datas, new_row],
-                ignore_index=True,
-            )
+            self._update_new_row(question, "human", human_response)
         else:
             self.datas.loc[self.datas["question"] == question, "human"] = (
                 human_response
             )
+
+    # TODO Rename this here and in `insert_ai_response` and `insert_human_response`
+    def _update_new_row(self, question, arg1, arg2):
+        logging.info(f"Inserting new question: {question}")
+        new_row = pd.DataFrame({"question": [question], arg1: [arg2]})
+        self.datas = pd.concat([self.datas, new_row], ignore_index=True)
 
     def output_question(self):  # -> Iterator:
         return iter(self.datas["question"])
@@ -107,7 +96,7 @@ class EveryaiDataset:
         collection = database[self.data_name]
         data = pd.DataFrame(list(collection.find()))
         data = data.drop(columns=["_id"], errors="ignore")
-        data.sort_values(by="timestamp", ascending=False, inplace=True)
+        data = data.sort_values(by="timestamp", ascending=False)
         data = data.drop_duplicates(subset=["question"], keep="first")
         data = data.drop(columns=["timestamp"])
         self.datas = data

@@ -21,10 +21,10 @@ class Generator:
         self.tokenizer = None
 
     def _openai_generate(
-        self, input: str, base_url: str, model_name: str, api_key: str = "0"
+        self, user_input: str, base_url: str, model_name: str, api_key: str = "0"
     ) -> str:
         client = OpenAI(api_key=api_key, base_url=base_url)
-        messages = [{"role": "user", "content": input}]
+        messages = [{"role": "user", "content": user_input}]
         result = client.chat.completions.create(
             messages=messages, model=model_name
         )
@@ -105,7 +105,7 @@ class Generator:
                     self.api_key = "0"
                     logging.info("API key is not provided and was set to 0")
                 response = self._openai_generate(
-                    input=message,
+                    user_input=message,
                     base_url=self.api,
                     model_name=self.model_name,
                     api_key=self.api_key,

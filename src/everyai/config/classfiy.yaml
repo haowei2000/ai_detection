@@ -6,7 +6,8 @@ classfier_list:
     test_size: 0.15
     valid_size: 0.15
   classfier_type: "sklearn"
-  model_config:
-    gamma: "auto"
-  tokenizer_config:
-    encoding: "utf-8"
+  pipeline:
+  - "TfidfVectorizer":
+      encoding: "utf-8"
+  - "SVM":
+      gamma: "auto"

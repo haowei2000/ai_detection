@@ -30,10 +30,7 @@ def remove_punctuation(text: str) -> str:
     # Remove English punctuation
     text = text.translate(translator)
 
-    # Remove Chinese punctuation using regex
-    text = re.sub(f"[{chinese_punc}]", "", text)
-
-    return text
+    return re.sub(f"[{chinese_punc}]", "", text)
 
 
 def load_stopwords(file_path: str | Path) -> set[str]:
@@ -47,7 +44,7 @@ def load_stopwords(file_path: str | Path) -> set[str]:
         set: Set of stopwords
     """
     with open(file_path, "r", encoding="utf-8") as f:
-        return set(line.strip() for line in f)
+        return {line.strip() for line in f}
 
 
 def remove_stopwords(

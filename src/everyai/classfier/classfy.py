@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from math import pi
 from pathlib import Path
 from typing import List, Optional
 
@@ -8,14 +9,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sklearn
+from sklearn.pipeline import make_pipeline
 import torch
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (accuracy_score, auc, confusion_matrix, f1_score,
-                             precision_recall_curve, precision_score,
-                             recall_score, roc_curve)
+from sklearn.metrics import (
+    accuracy_score,
+    auc,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_curve,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 
@@ -96,17 +105,7 @@ def evaluate_classification_model(
     results_df.to_csv(results_csv_path, index=False)
     logging.info(f"Results saved to {results_csv_path}")
     if roc_auc is not None:
-        print(f"AUC: {roc_auc:.2f}")
-        # 绘制 ROC 曲线
-        plt.figure()
-        plt.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel("False Positive Rate")
-        plt.ylabel("True Positive Rate")
-        plt.title("Receiver Operating Characteristic")
-        plt.legend(loc="lower right")
-        plt.savefig(output_path / "roc_curve.png")
+        _plot_roc(roc_auc, output_path)
     else:
         logging.warning("ROC curve not available")
         print("AUC: N/A")
@@ -115,9 +114,7 @@ def evaluate_classification_model(
         # 绘制精度-召回率曲线
         plt.figure()
         plt.plot(recall_vals, precision_vals, color="b", lw=2)
-        plt.xlabel("Recall")
-        plt.ylabel("Precision")
-        plt.title("Precision-Recall curve")
+        plot_pr("Recall", "Precision", "Precision-Recall curve")
         plt.savefig(output_path / "precision_recall_curve.png")
     else:
         logging.warning("Precision-Recall curve not available")
@@ -128,6 +125,30 @@ def evaluate_classification_model(
         "f1": f1,
         "roc_auc": roc_auc,
     }
+
+
+# TODO Rename this here and in `evaluate_classification_model`
+def _plot_roc(roc_auc, output_path):
+    logging.info(f"AUC: {roc_auc:.2f}")
+    # 绘制 ROC 曲线
+    plt.figure()
+    plt.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plot_pr(
+        "False Positive Rate",
+        "True Positive Rate",
+        "Receiver Operating Characteristic",
+    )
+    plt.legend(loc="lower right")
+    plt.savefig(output_path / "roc_curve.png")
+
+
+# TODO Rename this here and in `evaluate_classification_model`
+def plot_pr(arg0, arg1, arg2):
+    plt.xlabel(arg0)
+    plt.ylabel(arg1)
+    plt.title(arg2)
 
 
 class TextClassifer:
@@ -141,6 +162,7 @@ class TextClassifer:
         device="cpu",
         model=None,
         tokenizer=None,
+        pipeline=None,
         **kwargs,
     ):
         self.device = device
@@ -153,12 +175,15 @@ class TextClassifer:
         self.data_name = data_name
         self.score = None
         self.data = ClassfierData()
-        self.classfier_name = f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        self.classfier_name = (
+            f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        )
         self.model_config = None
         self.model_path = (
             MODEL_PATH
             / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
+        self.pipeline = pipeline if pipeline is not None else None
 
     def load_data(self, texts, labels, data_name):
         if len(texts) != len(labels):
@@ -171,7 +196,9 @@ class TextClassifer:
             f"Loading data: {data_name} to classfier {self.model_name}"
         )
         self.data_name = data_name
-        self.classfier_name = f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        self.classfier_name = (
+            f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        )
         return self.texts, self.labels, self.data_name
 
     def _split_data(self, path: Path):
@@ -215,6 +242,33 @@ class TextClassifer:
         return self.model
 
 
+def _init_sklearn_pipeline(pipeline_config:list[dict]):
+    step_dict = {
+        "tf_idf": TfidfVectorizer,
+        "count_vectorizer": CountVectorizer,
+        "logistic_regression": LogisticRegression,
+        "random_forest": RandomForestClassifier,
+        "svm": SVC,
+        "xgboost": xgb.XGBClassifier,
+        "standard_scaler": sklearn.preprocessing.StandardScaler,
+        "min_max_scaler": sklearn.preprocessing.MinMaxScaler,
+        "pca": sklearn.decomposition.PCA,
+        "kmeans": sklearn.cluster.KMeans,
+        "knn": sklearn.neighbors.KNeighborsClassifier,
+        "decision_tree": sklearn.tree.DecisionTreeClassifier,
+        "naive_bayes": sklearn.naive_bayes.GaussianNB,
+    }
+    steps = []
+    for step_name, step_params in pipeline_config.items():
+        if step_name in step_dict:
+            steps.append((step_name, step_dict[step_name](**step_params)))
+        else:
+            logging.warning(
+                f"Step {step_name} not recognized and will be skipped"
+            )
+    return make_pipeline(*[step[1] for step in steps])
+
+
 class SklearnClassifer(TextClassifer):
     def __init__(self, **classfiy_config):
         super().__init__(
@@ -245,9 +299,9 @@ class SklearnClassifer(TextClassifer):
             logging.warning(
                 "Cuda is not supported in sklearn and setting device to cpu"
             )
-            self.device = "cpu"
         else:
-            self.device = "cpu"
+            logging.info("Setting device to cpu")
+        self.device = "cpu"
         match classfiy_config["model_name"]:
             case "LogisticRegression":
                 self.model = LogisticRegression()
@@ -262,13 +316,9 @@ class SklearnClassifer(TextClassifer):
                 raise ValueError("Model not supported")
         match classfiy_config["tokenizer_name"]:
             case "CountVectorizer":
-                self.tokenizer = (
-                    CountVectorizer()
-                )
+                self.tokenizer = CountVectorizer()
             case "TfidfVectorizer" | "tfidf" | "TFIDF" | "tf-idf" | "TF-IDF":
-                self.tokenizer = (
-                    TfidfVectorizer()
-                )
+                self.tokenizer = TfidfVectorizer()
             case _:
                 logging.error("Tokenizer not supported")
                 raise ValueError("Tokenizer not supported")
@@ -282,6 +332,14 @@ class SklearnClassifer(TextClassifer):
             self.tokenizer.set_params(**self.tokenizer_config)
         else:
             logging.warning("Tokenizer config not provided")
+        # TODO: Add support for pipeline
+        if "pipeline" in classfiy_config:
+            self.pipeline = _init_sklearn_pipeline(classfiy_config["pipeline"])
+        else:
+            self.pipeline = make_pipeline(self.tokenizer, self.model)
+            logging.info(
+                "Pipeline not provided and make pipeline with tokenizer and model"
+            )
 
     def _split_data(self, x, y):
         # 获取原始数据的索引
