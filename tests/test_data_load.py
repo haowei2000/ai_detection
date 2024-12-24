@@ -1,7 +1,6 @@
 # 创建一个示例数据集（假设是一个 DataFrame）
 import numpy as np
 import pandas as pd
-import sklearn.model_selection
 from sklearn.model_selection import train_test_split
 
 
