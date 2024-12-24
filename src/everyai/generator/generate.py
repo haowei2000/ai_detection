@@ -10,7 +10,7 @@ from everyai.everyai_path import GENERATE_CONFIG_PATH
 
 
 class Generator:
-    def __init__(self, config: dict, format: Callable[[str],str] = None):
+    def __init__(self, config: dict, format: Callable[[str], str] = None):
         self.config = config
         self.generator_type: str = config["generator_type"]
         self.model_name: str = config["model_name"]
@@ -25,9 +25,7 @@ class Generator:
     ) -> str:
         client = OpenAI(api_key=api_key, base_url=base_url)
         messages = [{"role": "user", "content": input}]
-        result = client.chat.completions.create(
-            messages=messages, model=model_name
-        )
+        result = client.chat.completions.create(messages=messages, model=model_name)
         return result.choices[0].message.content
 
     def _huggingface_generate(

@@ -13,9 +13,16 @@ import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (accuracy_score, auc, confusion_matrix, f1_score,
-                             precision_recall_curve, precision_score,
-                             recall_score, roc_curve)
+from sklearn.metrics import (
+    accuracy_score,
+    auc,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_curve,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 
@@ -153,11 +160,12 @@ class TextClassifer:
         self.data_name = data_name
         self.score = None
         self.data = ClassfierData()
-        self.classfier_name = f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        self.classfier_name = (
+            f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        )
         self.model_config = None
         self.model_path = (
-            MODEL_PATH
-            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
+            MODEL_PATH / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
 
     def load_data(self, texts, labels, data_name):
@@ -167,11 +175,11 @@ class TextClassifer:
         else:
             self.texts = texts
             self.labels = labels
-        logging.info(
-            f"Loading data: {data_name} to classfier {self.model_name}"
-        )
+        logging.info(f"Loading data: {data_name} to classfier {self.model_name}")
         self.data_name = data_name
-        self.classfier_name = f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        self.classfier_name = (
+            f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        )
         return self.texts, self.labels, self.data_name
 
     def _split_data(self, path: Path):
@@ -238,9 +246,7 @@ class SklearnClassifer(TextClassifer):
         else:
             logging.warning("Split size not provided or not valid")
         if self.texts is None or self.labels is None or self.data_name is None:
-            logging.warning(
-                "Data not provided, please use the load_data method"
-            )
+            logging.warning("Data not provided, please use the load_data method")
         if "device" in classfiy_config and classfiy_config["device"] == "cuda":
             logging.warning(
                 "Cuda is not supported in sklearn and setting device to cpu"
@@ -262,13 +268,9 @@ class SklearnClassifer(TextClassifer):
                 raise ValueError("Model not supported")
         match classfiy_config["tokenizer_name"]:
             case "CountVectorizer":
-                self.tokenizer = (
-                    CountVectorizer()
-                )
+                self.tokenizer = CountVectorizer()
             case "TfidfVectorizer" | "tfidf" | "TFIDF" | "tf-idf" | "TF-IDF":
-                self.tokenizer = (
-                    TfidfVectorizer()
-                )
+                self.tokenizer = TfidfVectorizer()
             case _:
                 logging.error("Tokenizer not supported")
                 raise ValueError("Tokenizer not supported")
@@ -305,8 +307,7 @@ class SklearnClassifer(TextClassifer):
                 x_train,
                 y_train,
                 train_indices,
-                test_size=self.valid_size
-                / (self.train_size + self.valid_size),
+                test_size=self.valid_size / (self.train_size + self.valid_size),
                 random_state=42,
             )
         )

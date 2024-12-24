@@ -13,7 +13,7 @@ def create_topic(
     topic_config: dict = {},
 ) -> BERTopic:
     topic_model = BERTopic(embedding_model=embedding_model, min_topic_size=5)
-    
+
     topic_model.fit_transform(docs)
     # Save the results in the new directory
     logging.info(f"Saving results in {output_folder}")
@@ -26,9 +26,7 @@ def create_topic(
     bar_fig: Figure = topic_model.visualize_barchart(
         **topic_config.get("bar_config", {})
     )
-    scatter_fig = topic_model.visualize_topics(
-        **topic_config.get("scatter_config", {})
-    )
+    scatter_fig = topic_model.visualize_topics(**topic_config.get("scatter_config", {}))
     heatmap_fig = topic_model.visualize_heatmap(
         **topic_config.get("heatmap_config", {})
     )
@@ -45,7 +43,7 @@ def create_topic(
         "hierarchy": hierarchy_fig,
         "termrank": termrank_fig,
     }
-    for fig_name,fig in fig_dict.items():
+    for fig_name, fig in fig_dict.items():
         if isinstance(fig, Figure):
             match topic_config["suffix"]:
                 case "html":
@@ -57,9 +55,7 @@ def create_topic(
                         output_folder / f"{fig_name}.{topic_config['suffix']}"
                     )
                 case _:
-                    logging.error(
-                        f"Unsupported file format: {topic_config['suffix']}"
-                    )
+                    logging.error(f"Unsupported file format: {topic_config['suffix']}")
         else:
             logging.error(f"Error in saving {fig_name} figure")
     return topic_model
