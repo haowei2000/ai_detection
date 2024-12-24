@@ -50,9 +50,7 @@ def load_stopwords(file_path: str | Path) -> set[str]:
         return set(line.strip() for line in f)
 
 
-def remove_stopwords(
-    text: str, lang="both", stopwords: str | Path | set | list = None
-):
+def remove_stopwords(text: str, lang="both", stopwords: str | Path | set | list = None):
     """
     Remove stopwords from text in English and/or Chinese.
 
@@ -73,10 +71,10 @@ def remove_stopwords(
         stopwords = set(stopwords)
     else:
         match lang.lower():
-            case ["en","english"]:
+            case ["en", "english"]:
                 stopwords = en_stopwords
                 logging.info("Using English stopwords")
-            case ["zh","chinese"]:
+            case ["zh", "chinese"]:
                 stopwords = zh_stopwords
                 logging.info("Using Chinese stopwords")
             case _:

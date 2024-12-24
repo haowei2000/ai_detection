@@ -8,8 +8,15 @@ from everyai.data_loader.data_load import Data_loader
 from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
 from everyai.data_loader.everyai_dataset import EveryaiDataset
 from everyai.data_loader.mongo_connection import get_mongo_connection
-from everyai.everyai_path import (BERT_TOPIC_CONFIG_PATH, CLASSFIY_CONFIG_PATH, DATA_LOAD_CONFIG_PATH, DATA_PATH, FIG_PATH,
-                                  GENERATE_CONFIG_PATH, MONGO_CONFIG_PATH)
+from everyai.everyai_path import (
+    BERT_TOPIC_CONFIG_PATH,
+    CLASSFIY_CONFIG_PATH,
+    DATA_LOAD_CONFIG_PATH,
+    DATA_PATH,
+    FIG_PATH,
+    GENERATE_CONFIG_PATH,
+    MONGO_CONFIG_PATH,
+)
 from everyai.explanation.explain import LimeExplanation, ShapExplanation
 from everyai.generator.generate import Generator
 from everyai.topic.bertopic import create_topic
@@ -32,16 +39,12 @@ def generate():
                 file_path=data_config["file_path"],
                 data_type=data_config["data_type"],
             )
-            qa_datas = data_loader.load_data2list(
-                max_count=data_config["max_count"]
-            )
+            qa_datas = data_loader.load_data2list(max_count=data_config["max_count"])
             everyai_dataset = EveryaiDataset(
                 dataname=data_config["data_name"],
                 ai_list=[generate_config["model_name"]],
             )
-            for data in tqdm(
-                qa_datas, desc="Generating data", total=len(qa_datas)
-            ):
+            for data in tqdm(qa_datas, desc="Generating data", total=len(qa_datas)):
                 ai_response: str = generator.generate(data["question"])
                 everyai_dataset.insert_ai_response(
                     question=data["question"],
@@ -83,7 +86,11 @@ def topic():
                     docs,
                 )
             )
-            create_topic(docs, FIG_PATH/everyai_dataset.data_name/catogeory,topic_config=topic_config)
+            create_topic(
+                docs,
+                FIG_PATH / everyai_dataset.data_name / catogeory,
+                topic_config=topic_config,
+            )
             logging.info(f"Topic created for {catogeory}")
 
 
@@ -97,16 +104,18 @@ def classfiy():
         )
         everyai_dataset.load(format="mongodb")
         logging.info(f"Loaded data: {everyai_dataset.data_name}")
-        texts,labels = everyai_dataset.get_records_with_1ai(["THUDM/glm-4-9b-chat-hf"])
-        for classfiy_config in get_config(file_path=CLASSFIY_CONFIG_PATH)["classfier_list"]:
+        texts, labels = everyai_dataset.get_records_with_1ai(["THUDM/glm-4-9b-chat-hf"])
+        for classfiy_config in get_config(file_path=CLASSFIY_CONFIG_PATH)[
+            "classfier_list"
+        ]:
             match classfiy_config["classfier_type"]:
                 case "sklearn":
                     text_classfier = SklearnClassifer(
                         **classfiy_config,
-                )
-                case _ :
+                    )
+                case _:
                     raise ValueError("Classfier type not supported")
-            text_classfier.load_data(texts,labels,data_name=everyai_dataset.data_name)
+            text_classfier.load_data(texts, labels, data_name=everyai_dataset.data_name)
             text_classfier.train()
             text_classfier.test()
             text_classfier.save_model()
@@ -117,10 +126,12 @@ def classfiy():
             shap_explanation = ShapExplanation(classfier=text_classfier)
             shap_explanation.explain()
 
+
 def main():
     generate()
     topic()
     classfiy()
+
 
 if __name__ == "__main__":
     # generate()
