@@ -39,16 +39,12 @@ def generate():
                 file_path=data_config["file_path"],
                 data_type=data_config["data_type"],
             )
-            qa_datas = data_loader.load_data2list(
-                max_count=data_config["max_count"]
-            )
+            qa_datas = data_loader.load_data2list(max_count=data_config["max_count"])
             everyai_dataset = EveryaiDataset(
                 dataname=data_config["data_name"],
                 ai_list=[generate_config["model_name"]],
             )
-            for data in tqdm(
-                qa_datas, desc="Generating data", total=len(qa_datas)
-            ):
+            for data in tqdm(qa_datas, desc="Generating data", total=len(qa_datas)):
                 ai_response: str = generator.generate(data["question"])
                 everyai_dataset.insert_ai_response(
                     question=data["question"],
@@ -106,9 +102,7 @@ def classfiy():
         )
         everyai_dataset.load(format="mongodb")
         logging.info(f"Loaded data: {everyai_dataset.data_name}")
-        texts, labels = everyai_dataset.get_records_with_1ai(
-            ["THUDM/glm-4-9b-chat-hf"]
-        )
+        texts, labels = everyai_dataset.get_records_with_1ai(["THUDM/glm-4-9b-chat-hf"])
         for classfiy_config in get_config(file_path=CLASSFIY_CONFIG_PATH)[
             "classfier_list"
         ]:
@@ -119,9 +113,7 @@ def classfiy():
                     )
                 case _:
                     raise ValueError("Classfier type not supported")
-            text_classfier.load_data(
-                texts, labels, data_name=everyai_dataset.data_name
-            )
+            text_classfier.load_data(texts, labels, data_name=everyai_dataset.data_name)
             text_classfier.train()
             text_classfier.test()
             text_classfier.save_model()
