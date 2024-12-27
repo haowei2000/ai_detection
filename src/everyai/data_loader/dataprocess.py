@@ -109,7 +109,7 @@ def split_remove_stopwords_punctuation(text: str, language="both") -> str:
         Defaults to 'both'.
 
     Returns:
-        str: Processed text with words split, punctuation removed, 
+        str: Processed text with words split, punctuation removed,
         and stopwords removed.
     """
     if language.lower() in ["zh", "chinese"]:
