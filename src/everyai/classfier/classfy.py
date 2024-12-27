@@ -175,8 +175,7 @@ class TextClassifer:
         )
         self.model_config = None
         self.model_path = (
-            MODEL_PATH
-            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
+            MODEL_PATH / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
         self.pipeline = pipeline if pipeline is not None else None
 
@@ -186,9 +185,7 @@ class TextClassifer:
             raise ValueError("Length of texts and labels should be same")
         self.texts = texts
         self.labels = labels
-        logging.info(
-            "Loading data: %s to classfier %s", data_name, self.model_name
-        )
+        logging.info("Loading data: %s to classfier %s", data_name, self.model_name)
         self.data_name = data_name
         self.classfier_name = (
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
@@ -237,9 +234,7 @@ def _init_sklearn_pipeline(pipeline_config: list[dict]):
         if step_name in step_dict:
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
-            logging.warning(
-                "Step %s not recognized and will be skipped", step_name
-            )
+            logging.warning("Step %s not recognized and will be skipped", step_name)
     return make_pipeline(*[step[1] for step in steps])
 
 
@@ -266,9 +261,7 @@ class SklearnClassifer(TextClassifer):
         else:
             logging.warning("Split size not provided or not valid")
         if self.texts is None or self.labels is None or self.data_name is None:
-            logging.warning(
-                "Data not provided, please use the load_data method"
-            )
+            logging.warning("Data not provided, please use the load_data method")
         if "device" in classfiy_config and classfiy_config["device"] == "cuda":
             logging.warning(
                 "Cuda is not supported in sklearn and setting device to cpu"
@@ -298,9 +291,7 @@ class SklearnClassifer(TextClassifer):
             raise ValueError("Model not supported")
 
         if classfiy_config["tokenizer_name"] in tokenizer_dict:
-            self.tokenizer = tokenizer_dict[
-                classfiy_config["tokenizer_name"]
-            ]()
+            self.tokenizer = tokenizer_dict[classfiy_config["tokenizer_name"]]()
         else:
             logging.error("Tokenizer not supported")
             raise ValueError("Tokenizer not supported")
@@ -345,8 +336,7 @@ class SklearnClassifer(TextClassifer):
                 x_train,
                 y_train,
                 train_indices,
-                test_size=self.valid_size
-                / (self.train_size + self.valid_size),
+                test_size=self.valid_size / (self.train_size + self.valid_size),
                 random_state=42,
             )
         )
