@@ -267,26 +267,32 @@ class SklearnClassifer(TextClassifer):
         else:
             logging.info("Setting device to cpu")
         self.device = "cpu"
-        match classfiy_config["model_name"]:
-            case "LogisticRegression":
-                self.model = LogisticRegression()
-            case "RandomForest":
-                self.model = RandomForestClassifier()
-            case "SVM":
-                self.model = SVC(probability=True)
-            case "XGBoost":
-                self.model = xgb.XGBClassifier()
-            case _:
-                logging.error("Model not supported")
-                raise ValueError("Model not supported")
-        match classfiy_config["tokenizer_name"]:
-            case "CountVectorizer":
-                self.tokenizer = CountVectorizer()
-            case "TfidfVectorizer" | "tfidf" | "TFIDF" | "tf-idf" | "TF-IDF":
-                self.tokenizer = TfidfVectorizer()
-            case _:
-                logging.error("Tokenizer not supported")
-                raise ValueError("Tokenizer not supported")
+        model_dict = {
+            "LogisticRegression": LogisticRegression,
+            "RandomForest": RandomForestClassifier,
+            "SVM": SVC,
+            "XGBoost": xgb.XGBClassifier,
+        }
+        tokenizer_dict = {
+            "CountVectorizer": CountVectorizer,
+            "TfidfVectorizer": TfidfVectorizer,
+            "tfidf": TfidfVectorizer,
+            "TFIDF": TfidfVectorizer,
+            "tf-idf": TfidfVectorizer,
+            "TF-IDF": TfidfVectorizer,
+        }
+
+        if classfiy_config["model_name"] in model_dict:
+            self.model = model_dict[classfiy_config["model_name"]]()
+        else:
+            logging.error("Model not supported")
+            raise ValueError("Model not supported")
+
+        if classfiy_config["tokenizer_name"] in tokenizer_dict:
+            self.tokenizer = tokenizer_dict[classfiy_config["tokenizer_name"]]()
+        else:
+            logging.error("Tokenizer not supported")
+            raise ValueError("Tokenizer not supported")
         if "model_config" in classfiy_config:
             self.model_config = classfiy_config["model_config"]
             self.model.set_params(**self.model_config)
@@ -379,7 +385,7 @@ class SklearnClassifer(TextClassifer):
                 / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
             )
         else:
-            path = path
+            logging.info(f"Saving model to {path}")
         joblib.dump(self.model, path)
         logging.info(f"Model saved to {path}")
 
@@ -390,7 +396,7 @@ class SklearnClassifer(TextClassifer):
                 / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
             )
         else:
-            path = path
+            logging.info(f"Loading model from {path}")
         logging.info(f"Loading model from {path}")
         self.model = joblib.load(path)
         return self.model
@@ -419,15 +425,3 @@ class PytorchClassifer(TextClassifer):
             model,
             tokenizer,
         )
-
-    def test(self, x_test, y_test):
-        return self.model
-
-    def predict(self, x):
-        return self.model.predict(x)
-
-    def save_model(self, path):
-        return self.model
-
-    def load(self, path):
-        return self.model

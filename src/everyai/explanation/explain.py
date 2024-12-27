@@ -15,9 +15,6 @@ class Explanation:
         self.labels = set(classfier.labels)
         self.pipeline = make_pipeline(classfier.tokenizer, classfier.model)
 
-    def explain(self, output_path: Path = None):
-        pass
-
 
 class LimeExplanation(Explanation):
     def __init__(self, classfier: TextClassifer):

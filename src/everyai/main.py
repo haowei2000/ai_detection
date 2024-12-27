@@ -19,7 +19,7 @@ from everyai.everyai_path import (
 )
 from everyai.explanation.explain import LimeExplanation, ShapExplanation
 from everyai.generator.generate import Generator
-from everyai.topic.bertopic import create_topic
+from everyai.topic.my_bertopic import create_topic
 
 logging.basicConfig(level=logging.INFO)
 

@@ -19,6 +19,11 @@ class Generator:
         self.format = format
         self.model = None
         self.tokenizer = None
+        if "api_key" in config:
+            self.api_key: str = self.config["api_key"]
+        else:
+            self.api_key = "0"
+            logging.info("API key is not provided and was set to 0")
 
     @staticmethod
     def _openai_generate(
@@ -98,11 +103,7 @@ class Generator:
                     self.api: str = self.config["api"]
                 else:
                     logging.info("API is not provided")
-                if "api_key" in self.config.keys():
-                    self.api_key: str = self.config["api_key"]
-                else:
-                    self.api_key = "0"
-                    logging.info("API key is not provided and was set to 0")
+
                 response = self._openai_generate(
                     user_input=message,
                     base_url=self.api,
