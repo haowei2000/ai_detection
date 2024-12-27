@@ -85,7 +85,7 @@ def remove_stopwords(text: str, lang="both", stopwords: str | Path | set | list 
     return " ".join(words)
 
 
-def chinese_split(text):
+def chinese_split(text) -> str:
     """
     Split Chinese text into words.
 
