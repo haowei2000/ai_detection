@@ -43,6 +43,9 @@ def load_stopwords(file_path: str | Path) -> set[str]:
     Returns:
         set: Set of stopwords
     """
+    if file_path not in ["en_stopwprds.txt", "zh_stopwords.txt", "stopwords.txt"]:
+        logging.error("Invalid stopwords file path")
+        raise ValueError("Invalid stopwords file path")
     with open(file_path, "r", encoding="utf-8") as f:
         return {line.strip() for line in f}
 
