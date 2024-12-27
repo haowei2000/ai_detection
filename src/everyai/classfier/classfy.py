@@ -203,6 +203,22 @@ class TextClassifer:
             raise
         return self.model
 
+    @staticmethod
+    def _tokenize():
+        return None
+
+    @staticmethod
+    def train():
+        return None
+
+    @staticmethod
+    def test():
+        return None
+
+    @staticmethod
+    def predict():
+        return None
+
     def show_score(self):
         self.score = evaluate_classification_model(
             self.data.y_test,
@@ -245,9 +261,7 @@ def _init_sklearn_pipeline(pipeline_config: list[dict]):
         if step_name in step_dict:
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
-            logging.warning(
-                f"Step {step_name} not recognized and will be skipped"
-            )
+            logging.warning(f"Step {step_name} not recognized and will be skipped")
     return make_pipeline(*[step[1] for step in steps])
 
 
@@ -414,44 +428,6 @@ class SklearnClassifer(TextClassifer):
 
 
 class PytorchClassifer(TextClassifer):
-    def __init__(
-        self,
-        texts: List[str],
-        labels: List[str],
-        model_name: str = None,
-        tokenizer_name: str = None,
-        data_name: str = None,
-        device: str = "cpu",
-        model=None,
-        tokenizer=None,
-    ):
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        super().__init__(
-            texts,
-            labels,
-            model_name,
-            tokenizer_name,
-            data_name,
-            device,
-            model,
-            tokenizer,
-        )
-        return self.model
-
-    def test(self, x_test, y_test):
-        return self.model
-
-    def predict(self, x):
-        return self.model.predict(x)
-
-    def save_model(self, path):
-        return self.model
-
-    def load(self, path):
-        return self.model
-
-
-class huggingfaceClassifer(TextClassifer):
     def __init__(
         self,
         texts: List[str],
