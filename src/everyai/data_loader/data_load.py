@@ -49,11 +49,10 @@ class Data_loader:
                     ].to_pandas()
                 case _:
                     logging.error("Invalid file format")
+        elif Path(self.file_name_or_path).exists():
+            logging.error("Invalid file type")
         else:
-            if not Path(self.file_name_or_path).exists():
-                logging.error(f"File not found: {self.file_name_or_path}")
-            else:
-                logging.error("Invalid file type")
+            logging.error(f"File not found: {self.file_name_or_path}")
         if self.filter is not None:
             data = self.filter(data)
         else:
@@ -82,18 +81,6 @@ class Data_loader:
 
 
 if __name__ == "__main__":
-    # loader = Data_loader("test.csv", "question")
-    # data = loader.load_data()
-    # print(data)
-    # loader = Data_loader("test.xlsx", "question")
-    # data = loader.load_data()
-    # print(data)
-    # loader = Data_loader("test.jsonl", "question")
-    # data = loader.load_data()
-    # print(data)
-    # loader = Data_loader("test.json", "question")
-    # data = loader.load_data()
-    # print(data)
     loader = Data_loader("wanghw/human-ai-comparison", "question")
     data = loader.load_data2list()
     print(data)

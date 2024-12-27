@@ -1,6 +1,5 @@
 import logging
 from dataclasses import dataclass
-from math import pi
 from pathlib import Path
 from typing import List, Optional
 
@@ -9,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import sklearn
-from sklearn.pipeline import make_pipeline
 import torch
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
@@ -26,6 +24,7 @@ from sklearn.metrics import (
     roc_curve,
 )
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
 
 from everyai.everyai_path import MODEL_PATH, RESULT_PATH
@@ -79,14 +78,12 @@ def evaluate_classification_model(
         roc_auc = auc(fpr, tpr)
     else:
         roc_auc = None
-    # 精度-召回率曲线
     if model is not None and X_test is not None:
         precision_vals, recall_vals, _ = precision_recall_curve(
             y_true, model.predict_proba(X_test)[:, 1]
         )
     else:
         precision_vals, recall_vals = [], []
-    # 打印和返回结果
     logging.info(f"Accuracy: {accuracy:.2f}")
     logging.info(f"Precision: {precision:.2f}")
     logging.info(f"Recall: {recall:.2f}")
@@ -127,7 +124,6 @@ def evaluate_classification_model(
     }
 
 
-# TODO Rename this here and in `evaluate_classification_model`
 def _plot_roc(roc_auc, output_path):
     logging.info(f"AUC: {roc_auc:.2f}")
     # 绘制 ROC 曲线
@@ -144,7 +140,6 @@ def _plot_roc(roc_auc, output_path):
     plt.savefig(output_path / "roc_curve.png")
 
 
-# TODO Rename this here and in `evaluate_classification_model`
 def plot_pr(arg0, arg1, arg2):
     plt.xlabel(arg0)
     plt.ylabel(arg1)
@@ -180,7 +175,8 @@ class TextClassifer:
         )
         self.model_config = None
         self.model_path = (
-            MODEL_PATH / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
+            MODEL_PATH
+            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
         self.pipeline = pipeline if pipeline is not None else None
 
@@ -190,7 +186,9 @@ class TextClassifer:
             raise ValueError("Length of texts and labels should be same")
         self.texts = texts
         self.labels = labels
-        logging.info(f"Loading data: {data_name} to classfier {self.model_name}")
+        logging.info(
+            f"Loading data: {data_name} to classfier {self.model_name}"
+        )
         self.data_name = data_name
         self.classfier_name = (
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
@@ -204,18 +202,6 @@ class TextClassifer:
             logging.error(f"File not found: {path}")
             raise
         return self.model
-
-    def _tokenize(self):
-        return None
-
-    def train(self):
-        return None
-
-    def test(self):
-        return None
-
-    def predict(self):
-        return None
 
     def show_score(self):
         self.score = evaluate_classification_model(
@@ -238,7 +224,7 @@ class TextClassifer:
         return self.model
 
 
-def _init_sklearn_pipeline(pipeline_config:list[dict]):
+def _init_sklearn_pipeline(pipeline_config: list[dict]):
     step_dict = {
         "tf_idf": TfidfVectorizer,
         "count_vectorizer": CountVectorizer,
@@ -288,7 +274,9 @@ class SklearnClassifer(TextClassifer):
         else:
             logging.warning("Split size not provided or not valid")
         if self.texts is None or self.labels is None or self.data_name is None:
-            logging.warning("Data not provided, please use the load_data method")
+            logging.warning(
+                "Data not provided, please use the load_data method"
+            )
         if "device" in classfiy_config and classfiy_config["device"] == "cuda":
             logging.warning(
                 "Cuda is not supported in sklearn and setting device to cpu"
@@ -357,7 +345,8 @@ class SklearnClassifer(TextClassifer):
                 x_train,
                 y_train,
                 train_indices,
-                test_size=self.valid_size / (self.train_size + self.valid_size),
+                test_size=self.valid_size
+                / (self.train_size + self.valid_size),
                 random_state=42,
             )
         )
@@ -448,6 +437,43 @@ class PytorchClassifer(TextClassifer):
             tokenizer,
         )
         return self.model
+
+    def test(self, x_test, y_test):
+        return self.model
+
+    def predict(self, x):
+        return self.model.predict(x)
+
+    def save_model(self, path):
+        return self.model
+
+    def load(self, path):
+        return self.model
+
+
+class huggingfaceClassifer(TextClassifer):
+    def __init__(
+        self,
+        texts: List[str],
+        labels: List[str],
+        model_name: str = None,
+        tokenizer_name: str = None,
+        data_name: str = None,
+        device: str = "cpu",
+        model=None,
+        tokenizer=None,
+    ):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        super().__init__(
+            texts,
+            labels,
+            model_name,
+            tokenizer_name,
+            data_name,
+            device,
+            model,
+            tokenizer,
+        )
 
     def test(self, x_test, y_test):
         return self.model

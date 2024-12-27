@@ -1,19 +1,19 @@
 generate_list:
-- generator_type: "openai"
-  model_name: "ZhipuAI/glm-4-9b-chat"
-  model_path: None
-  api: "http://llamafactory:8000/v1"
-  api_key: "0"
-  gen_kwargs:
-    do_sample: true
-    eos_token_id:
-    - 151329
-    - 151336
-    - 151338
-    max_length: 128000
-    pad_token_id: 151329
-    temperature: 0.8
-    top_p: 0.8
+# - generator_type: "openai"
+#   model_name: "ZhipuAI/glm-4-9b-chat"
+#   model_path: None
+#   api: "http://llamafactory:8000/v1"
+#   api_key: "0"
+#   gen_kwargs:
+#     do_sample: true
+#     eos_token_id:
+#     - 151329
+#     - 151336
+#     - 151338
+#     max_length: 128000
+#     pad_token_id: 151329
+#     temperature: 0.8
+#     top_p: 0.8
 - generator_type: "huggingface"
   model_name: "THUDM/glm-4-9b-chat-hf"
   model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
