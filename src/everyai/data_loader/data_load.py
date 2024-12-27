@@ -55,23 +55,19 @@ class Data_loader:
         elif Path(self.file_name_or_path).exists():
             logging.error("Invalid file type")
         else:
-            logging.error(f"File not found: {self.file_name_or_path}")
+            logging.error("File not found: %s", self.file_name_or_path)
         if self.filter is not None:
             dataset = self.filter(dataset)
         else:
             dataset = default_filter(dataset)
             logging.info(
-                (
-                    "Default filter is applied, if you want to apply custom filter, "
-                    "please provide the filter function"
-                )
+                "Default filter is applied, if you want to apply custom filter, "
+                "please provide the filter function"
             )
         if max_count is not None and dataset is not None:
             dataset = dataset.head(max_count)
         else:
-            logging.info(
-                "Max count is None and all the records will be loaded"
-            )
+            logging.info("Max count is None and all the records will be loaded")
         dataset.rename(
             columns={
                 self.question_column: "question",

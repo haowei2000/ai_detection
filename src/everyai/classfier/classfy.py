@@ -84,10 +84,10 @@ def evaluate_classification_model(
         )
     else:
         precision_vals, recall_vals = [], []
-    logging.info(f"Accuracy: {accuracy:.2f}")
-    logging.info(f"Precision: {precision:.2f}")
-    logging.info(f"Recall: {recall:.2f}")
-    logging.info(f"F1 Score: {f1:.2f}")
+    logging.info("Accuracy: %.2f", accuracy)
+    logging.info("Precision: %.2f", precision)
+    logging.info("Recall: %.2f", recall)
+    logging.info("F1 Score: %.2f", f1)
     logging.info("Confusion Matrix:")
     logging.info(cm)
     # Save results to CSV
@@ -100,7 +100,7 @@ def evaluate_classification_model(
     output_path.mkdir(parents=True, exist_ok=True)
     results_csv_path = output_path / "classification_results.csv"
     results_df.to_csv(results_csv_path, index=False)
-    logging.info(f"Results saved to {results_csv_path}")
+    logging.info("Results saved to %s", results_csv_path)
     if roc_auc is not None:
         _plot_roc(roc_auc, output_path)
     else:
@@ -125,7 +125,7 @@ def evaluate_classification_model(
 
 
 def _plot_roc(roc_auc, output_path):
-    logging.info(f"AUC: {roc_auc:.2f}")
+    logging.info("AUC: %.2f", roc_auc)
     # 绘制 ROC 曲线
     plt.figure()
     plt.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")
@@ -187,7 +187,7 @@ class TextClassifer:
         self.texts = texts
         self.labels = labels
         logging.info(
-            f"Loading data: {data_name} to classfier {self.model_name}"
+            "Loading data: %s to classfier %s", data_name, self.model_name
         )
         self.data_name = data_name
         self.classfier_name = (
@@ -208,7 +208,7 @@ class TextClassifer:
 
     def save_model(self, path):
         joblib.dump(self.model, path)
-        logging.info(f"Model saved to {path}")
+        logging.info("Model saved to %s", path)
         return self.model
 
     def load_model(self, path):
@@ -238,7 +238,7 @@ def _init_sklearn_pipeline(pipeline_config: list[dict]):
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
             logging.warning(
-                f"Step {step_name} not recognized and will be skipped"
+                "Step %s not recognized and will be skipped", step_name
             )
     return make_pipeline(*[step[1] for step in steps])
 
@@ -249,7 +249,7 @@ class SklearnClassifer(TextClassifer):
             model_name=classfiy_config["model_name"],
             tokenizer_name=classfiy_config["tokenizer_name"],
         )
-        logging.info(f"Classfier config: {classfiy_config}")
+        logging.info("Classfier config: %s", classfiy_config)
         split_size = classfiy_config.get("split_size", {})
         train_size = split_size.get("train_size")
         test_size = split_size.get("test_size")
@@ -396,9 +396,9 @@ class SklearnClassifer(TextClassifer):
                 / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
             )
         else:
-            logging.info(f"Saving model to {path}")
+            logging.info("Saving model to %s", path)
         joblib.dump(self.model, path)
-        logging.info(f"Model saved to {path}")
+        logging.info("Model saved to %s", path)
 
     def load_model(self, path: Path = None):
         if path is None:
@@ -407,8 +407,8 @@ class SklearnClassifer(TextClassifer):
                 / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
             )
         else:
-            logging.info(f"Loading model from {path}")
-        logging.info(f"Loading model from {path}")
+            logging.info("Loading model from %s", path)
+        logging.info("Loading model from %s", path)
         self.model = joblib.load(path)
         return self.model
 

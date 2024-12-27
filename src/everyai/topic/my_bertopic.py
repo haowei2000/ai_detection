@@ -18,7 +18,7 @@ def create_topic(
 
     topic_model.fit_transform(docs)
     # Save the results in the new directory
-    logging.info(f"Saving results in {output_folder}")
+    logging.info("Saving results in %s", output_folder)
     if isinstance(output_folder, str):
         output_folder = Path(output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
@@ -57,7 +57,7 @@ def create_topic(
                         output_folder / f"{fig_name}.{topic_config['suffix']}"
                     )
                 case _:
-                    logging.error(f"Unsupported file format: {topic_config['suffix']}")
+                    logging.error("Unsupported file format: %s", topic_config["suffix"])
         else:
-            logging.error(f"Error in saving {fig_name} figure")
+            logging.error("Error in saving %s figure", fig_name)
     return topic_model

@@ -33,7 +33,7 @@ class LimeExplanation(Explanation):
                 text, self.pipeline.predict_proba, num_features=6
             )
             exp.save_to_file(output_path / f"text{i}.html")
-        logging.info(f"Lime explanation saved to {output_path}")
+        logging.info("Lime explanation saved to %s", output_path)
 
 
 class ShapExplanation(Explanation):
@@ -55,4 +55,4 @@ class ShapExplanation(Explanation):
             html_output = shap.plots.text(shap_values, display=False)
             with open(output_path / f"text{i}", "w", encoding="utf-8") as f:
                 f.write(html_output)
-        logging.info(f"Shap explanation saved to {output_path}")
+        logging.info("Shap explanation saved to %s", output_path)

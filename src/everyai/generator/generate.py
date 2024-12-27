@@ -31,7 +31,9 @@ class Generator:
     ) -> str:
         client = OpenAI(api_key=api_key, base_url=base_url)
         messages = [{"role": "user", "content": user_input}]
-        result = client.chat.completions.create(messages=messages, model=model_name)
+        result = client.chat.completions.create(
+            messages=messages, model=model_name
+        )
         return result.choices[0].message.content
 
     def _huggingface_generate(
@@ -41,60 +43,59 @@ class Generator:
         gen_kwargs: dict,
     ) -> str:
         generated_text = ""
-        if model_path_or_name is not None:
-            match model_path_or_name:
-                case _ if "glm-4-9b-chat" in model_path_or_name:
-                    logging.info("Using glm-4-9b-chat model")
-                    logging.info(f"load model from {model_path_or_name}")
-                    if self.tokenizer is None:
-                        self.tokenizer = AutoTokenizer.from_pretrained(
-                            model_path_or_name
-                        )
-                    else:
-                        self.tokenizer = self.tokenizer
-                        logging.info("Use existing tokenizer")
-                    if self.model is None:
-                        self.model = AutoModelForCausalLM.from_pretrained(
-                            model_path_or_name, device_map="auto"
-                        )
-                    else:
-                        self.model = self.model
-                        logging.info("Use existing model")
-                    message = [
-                        {
-                            "role": "system",
-                            "content": "Answer the following question.",
-                        },
-                        {
-                            "role": "user",
-                            "content": input,
-                        },
-                    ]
-                    inputs = self.tokenizer.apply_chat_template(
-                        message,
-                        return_tensors="pt",
-                        add_generation_prompt=True,
-                        return_dict=True,
-                    ).to(self.model.device)
-
-                    input_len = inputs["input_ids"].shape[1]
-                    gen_kwargs = gen_kwargs | {
-                        "input_ids": inputs["input_ids"],
-                        "attention_mask": inputs["attention_mask"],
-                    }
-                    out = self.model.generate(**gen_kwargs)
-                    generated_text = self.tokenizer.decode(
-                        out[0][input_len:], skip_special_tokens=True
+        match model_path_or_name:
+            case _ if "glm-4-9b-chat" in model_path_or_name:
+                logging.info("Using glm-4-9b-chat model")
+                logging.info("load model from %s", model_path_or_name)
+                if self.tokenizer is None:
+                    self.tokenizer = AutoTokenizer.from_pretrained(
+                        model_path_or_name
                     )
-                case _:
-                    logging.error(f"Unsupported model: {model_path_or_name}")
+                else:
+                    self.tokenizer = self.tokenizer
+                    logging.info("Use existing tokenizer")
+                if self.model is None:
+                    self.model = AutoModelForCausalLM.from_pretrained(
+                        model_path_or_name, device_map="auto"
+                    )
+                else:
+                    self.model = self.model
+                    logging.info("Use existing model")
+                message = [
+                    {
+                        "role": "system",
+                        "content": "Answer the following question.",
+                    },
+                    {
+                        "role": "user",
+                        "content": input,
+                    },
+                ]
+                inputs = self.tokenizer.apply_chat_template(
+                    message,
+                    return_tensors="pt",
+                    add_generation_prompt=True,
+                    return_dict=True,
+                ).to(self.model.device)
+
+                input_len = inputs["input_ids"].shape[1]
+                gen_kwargs = gen_kwargs | {
+                    "input_ids": inputs["input_ids"],
+                    "attention_mask": inputs["attention_mask"],
+                }
+                out = self.model.generate(**gen_kwargs)
+                generated_text = self.tokenizer.decode(
+                    out[0][input_len:], skip_special_tokens=True
+                )
+            case _:
+                logging.error("Unsupported model: %s", model_path_or_name)
         return generated_text
 
     def generate(self, message: str) -> str:
         response = ""
         if self.format is not None:
             message = self.format(message)
-            logging.info(f"Formatted input: {message}")
+            logging.info("Formatted input: %s", message)
         else:
             logging.info("Input was not formatted, using original input")
         match self.generator_type:
@@ -132,7 +133,7 @@ class Generator:
                     logging.error("Model path and model name is None")
             case _:
                 logging.error(
-                    f"Generator type '{self.generator_type}' is not supported"
+                    "Generator type '%s' is not supported", self.generator_type
                 )
         return response
 
