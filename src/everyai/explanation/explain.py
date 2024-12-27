@@ -26,7 +26,8 @@ class LimeExplanation(Explanation):
 
     def explain(self, output_path: Path = None):
         output_path = self.output_path if output_path is None else output_path
-        output_path.exists() or output_path.mkdir(parents=True)
+        if not output_path.exists():
+            output_path.mkdir(parents=True)
         test_indices = self.classfier.data.test_indices.tolist()
         test_text = [self.classfier.texts[i] for i in test_indices]
         explainer = LimeTextExplainer(class_names=self.labels)

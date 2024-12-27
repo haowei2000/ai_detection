@@ -17,7 +17,7 @@ class Data_loader:
         answer_column: str = "answer",
         file_path: str | Path = None,
         data_type: str = None,
-        filter: Callable[[pd.DataFrame], pd.DataFrame] = None,
+        data_filter: Callable[[pd.DataFrame], pd.DataFrame] = None,
     ):
         self.data_name = data_name
         if file_path is None:
@@ -30,7 +30,7 @@ class Data_loader:
             self.file_type = data_type
         self.question_column = question_column
         self.answer_column = answer_column
-        self.filter = filter
+        self.filter = data_filter
 
     def load_data2list(self, max_count: int = None):
         if Path(self.file_name_or_path).exists() or self.file_type == "huggingface":
