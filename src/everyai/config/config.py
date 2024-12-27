@@ -1,6 +1,10 @@
 from pathlib import Path
-from everyai.everyai_path import GENERATE_CONFIG_PATH, DATA_LOAD_CONFIG_PATH, MONGO_CONFIG_PATH, BERT_TOPIC_CONFIG_PATH, DATA_PATH
+
 import yaml
+
+from everyai.everyai_path import (BERT_TOPIC_CONFIG_PATH,
+                                  DATA_LOAD_CONFIG_PATH, DATA_PATH,
+                                  GENERATE_CONFIG_PATH, MONGO_CONFIG_PATH)
 
 
 def get_config(file_path: Path):
@@ -9,6 +13,7 @@ def get_config(file_path: Path):
         DATA_LOAD_CONFIG_PATH,
         MONGO_CONFIG_PATH,
         BERT_TOPIC_CONFIG_PATH,
+        DATA_PATH,
     ]:
         raise ValueError("Invalid config file path")
     with open(file_path, "r") as file:
