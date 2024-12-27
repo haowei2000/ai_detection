@@ -23,7 +23,9 @@ class EveryaiDataset:
         if datas is not None:
             self.datas: pd.DataFrame = datas
         else:
-            self.datas: pd.DataFrame = pd.DataFrame(columns=["question", "human"])
+            self.datas: pd.DataFrame = pd.DataFrame(
+                columns=["question", "human"]
+            )
             if ai_list is not None:
                 for ai_name in ai_list:
                     self.datas[ai_name] = None
@@ -57,13 +59,17 @@ class EveryaiDataset:
         if question_exists:
             self._update_new_row(question, ai_name, ai_response)
         else:
-            self.datas.loc[self.datas["question"] == question, ai_name] = ai_response
+            self.datas.loc[self.datas["question"] == question, ai_name] = (
+                ai_response
+            )
 
     def insert_human_response(self, question, human_response: str):
         if self.datas[self.datas["question"] == question].empty:
             self._update_new_row(question, "human", human_response)
         else:
-            self.datas.loc[self.datas["question"] == question, "human"] = human_response
+            self.datas.loc[self.datas["question"] == question, "human"] = (
+                human_response
+            )
 
     # TODO Rename this here and in `insert_ai_response` and `insert_human_response`
     def _update_new_row(self, question, arg1, arg2):
@@ -95,7 +101,9 @@ class EveryaiDataset:
         data = data.drop(columns=["timestamp"])
         self.datas = data
 
-    def load(self, path_or_database: str | Path = None, formatter: str = "csv"):
+    def load(
+        self, path_or_database: str | Path = None, formatter: str = "csv"
+    ):
         if formatter == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
@@ -111,9 +119,14 @@ class EveryaiDataset:
                 path_or_database = Path(path_or_database)
             if not isinstance(path_or_database, Path):
                 logging.error("Invalid file name: %s", path_or_database)
-            if path_or_database is not None and path_or_database.suffix != f".{formatter}":
+            if (
+                path_or_database is not None
+                and path_or_database.suffix != f".{formatter}"
+            ):
                 logging.warning("Change file format to %s", formatter)
-                path_or_database = path_or_database.with_suffix(f".{formatter}")
+                path_or_database = path_or_database.with_suffix(
+                    f".{formatter}"
+                )
             else:
                 logging.info("Loading dataset from %s", path_or_database)
             match formatter:
@@ -130,7 +143,9 @@ class EveryaiDataset:
                 set(self.datas.columns) - {"question", "human", "timestamp"}
             )
 
-    def save(self, path_or_database: str | Path = None, formatter: str = "csv"):
+    def save(
+        self, path_or_database: str | Path = None, formatter: str = "csv"
+    ):
         if formatter == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
@@ -149,7 +164,9 @@ class EveryaiDataset:
                 return
             if path_or_database.suffix != f".{formatter}":
                 logging.warning("Change file format to %s", formatter)
-                path_or_database = path_or_database.with_suffix(f".{formatter}")
+                path_or_database = path_or_database.with_suffix(
+                    f".{formatter}"
+                )
             else:
                 logging.info("Saving dataset to %s", path_or_database)
             match formatter:
@@ -163,7 +180,7 @@ class EveryaiDataset:
                     logging.error("Invalid format: %s", formatter)
 
     @staticmethod
-    def _initialize_mongo_connection():# -> Database:
+    def _initialize_mongo_connection():
         mongodb_config = get_config(MONGO_CONFIG_PATH)
         result = get_mongo_connection(**mongodb_config)
         logging.info("Use default mongodb: %s", result)
