@@ -10,13 +10,13 @@ from everyai.everyai_path import GENERATE_CONFIG_PATH
 
 
 class Generator:
-    def __init__(self, config: dict, format: Callable[[str], str] = None):
+    def __init__(self, config: dict, formatter: Callable[[str], str] = None):
         self.config = config
         self.generator_type: str = config["generator_type"]
         self.model_name: str = config["model_name"]
         self.model_path: str | Path = config["model_path"]
         self.gen_kwargs: dict = {}
-        self.format = format
+        self.formatter = formatter
         self.model = None
         self.tokenizer = None
         if "api_key" in config:
@@ -38,7 +38,7 @@ class Generator:
 
     def _huggingface_generate(
         self,
-        input: str,
+        user_input: str,
         model_path_or_name: Path | str,
         gen_kwargs: dict,
     ) -> str:
@@ -68,7 +68,7 @@ class Generator:
                     },
                     {
                         "role": "user",
-                        "content": input,
+                        "content": user_input,
                     },
                 ]
                 inputs = self.tokenizer.apply_chat_template(
@@ -93,18 +93,13 @@ class Generator:
 
     def generate(self, message: str) -> str:
         response = ""
-        if self.format is not None:
-            message = self.format(message)
+        if self.formatter is not None:
+            message = self.formatter(message)
             logging.info("Formatted input: %s", message)
         else:
             logging.info("Input was not formatted, using original input")
         match self.generator_type:
             case "openai":
-                if "api" in self.config.keys():
-                    self.api: str = self.config["api"]
-                else:
-                    logging.info("API is not provided")
-
                 response = self._openai_generate(
                     user_input=message,
                     base_url=self.api,
@@ -119,13 +114,13 @@ class Generator:
                     logging.info("Generation kwargs is not provided")
                 if self.model_path is not None:
                     response = self._huggingface_generate(
-                        input=message,
+                        user_input=message,
                         model_path_or_name=self.model_path,
                         gen_kwargs=self.gen_kwargs,
                     )
                 elif self.model_name is not None:
                     response = self._huggingface_generate(
-                        input=message,
+                        user_input=message,
                         model_path_or_name=self.model_name,
                         gen_kwargs=self.gen_kwargs,
                     )

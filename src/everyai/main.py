@@ -60,11 +60,11 @@ def generate():
                 )
                 everyai_dataset.save(
                     path_or_database=DATA_PATH / everyai_dataset.data_name,
-                    format="csv",
+                    formatter="csv",
                 )
                 mongodb_config = get_config(MONGO_CONFIG_PATH)
                 db = get_mongo_connection(**mongodb_config)
-                everyai_dataset.save(path_or_database=db, format="mongodb")
+                everyai_dataset.save(path_or_database=db, formatter="mongodb")
 
 
 def topic():
@@ -75,7 +75,7 @@ def topic():
             dataname=data_config["data_name"],
             language=data_config["language"],
         )
-        everyai_dataset.load(format="csv")
+        everyai_dataset.load(formatter="csv")
         logging.info("Loaded data: %s", everyai_dataset.data_name)
         topic_config = get_config(file_path=BERT_TOPIC_CONFIG_PATH)
         for catogeory in everyai_dataset.ai_list + ["human"]:
@@ -83,7 +83,9 @@ def topic():
             docs = everyai_dataset.datas[catogeory].tolist()
             logging.info("Number of documents: %d", len(docs))
             new_docs = [
-                split_remove_stopwords_punctuation(doc, language=everyai_dataset.language)
+                split_remove_stopwords_punctuation(
+                    doc, language=everyai_dataset.language
+                )
                 for doc in docs
             ]
             create_topic(
@@ -102,7 +104,7 @@ def classfiy():
             dataname=data_config["data_name"],
             language=data_config["language"],
         )
-        everyai_dataset.load(format="mongodb")
+        everyai_dataset.load(formatter="mongodb")
         logging.info("Loaded data: %s", everyai_dataset.data_name)
         texts, labels = everyai_dataset.get_records_with_1ai(
             ["THUDM/glm-4-9b-chat-hf"]
@@ -124,7 +126,7 @@ def classfiy():
             text_classfier.test()
             text_classfier.save_model()
             text_classfier.show_score()
-            logging.info("Model saved for %s", classfiy_config['model_name'])
+            logging.info("Model saved for %s", classfiy_config["model_name"])
             lime_explanation = LimeExplanation(classfier=text_classfier)
             lime_explanation.explain()
             shap_explanation = ShapExplanation(classfier=text_classfier)

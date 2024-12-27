@@ -95,8 +95,8 @@ class EveryaiDataset:
         data = data.drop(columns=["timestamp"])
         self.datas = data
 
-    def load(self, path_or_database: str | Path = None, format: str = "csv"):
-        if format == "mongodb":
+    def load(self, path_or_database: str | Path = None, formatter: str = "csv"):
+        if formatter == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
             else:
@@ -104,19 +104,19 @@ class EveryaiDataset:
             self._load_from_mongodb(path_or_database)
         else:
             if path_or_database is None:
-                path_or_database = DATA_PATH / f"{self.data_name}.{format}"
+                path_or_database = DATA_PATH / f"{self.data_name}.{formatter}"
             else:
                 logging.info("Load dataset from %s", path_or_database)
             if isinstance(path_or_database, str):
                 path_or_database = Path(path_or_database)
             if not isinstance(path_or_database, Path):
                 logging.error("Invalid file name: %s", path_or_database)
-            if path_or_database is not None and path_or_database.suffix != f".{format}":
-                logging.warning("Change file format to %s", format)
-                path_or_database = path_or_database.with_suffix(f".{format}")
+            if path_or_database is not None and path_or_database.suffix != f".{formatter}":
+                logging.warning("Change file format to %s", formatter)
+                path_or_database = path_or_database.with_suffix(f".{formatter}")
             else:
                 logging.info("Loading dataset from %s", path_or_database)
-            match format:
+            match formatter:
                 case "csv":
                     self.datas = pd.read_csv(path_or_database)
                 case "xlsx":
@@ -124,14 +124,14 @@ class EveryaiDataset:
                 case "json":
                     self.datas = pd.read_json(path_or_database)
                 case _:
-                    logging.error("Invalid format: %s", format)
+                    logging.error("Invalid format: %s", formatter)
         if self.datas is not None:
             self.ai_list = list(
                 set(self.datas.columns) - {"question", "human", "timestamp"}
             )
 
-    def save(self, path_or_database: str | Path = None, format: str = "csv"):
-        if format == "mongodb":
+    def save(self, path_or_database: str | Path = None, formatter: str = "csv"):
+        if formatter == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
             else:
@@ -139,7 +139,7 @@ class EveryaiDataset:
             self._save2mongodb(path_or_database)
         else:
             if path_or_database is None:
-                path_or_database = f"{self.data_name}.{format}"
+                path_or_database = f"{self.data_name}.{formatter}"
             else:
                 logging.info("Save dataset to %s", path_or_database)
             if isinstance(path_or_database, str):
@@ -147,12 +147,12 @@ class EveryaiDataset:
             if not isinstance(path_or_database, Path):
                 logging.error("Invalid file name: %s", path_or_database)
                 return
-            if path_or_database.suffix != f".{format}":
-                logging.warning("Change file format to %s", format)
-                path_or_database = path_or_database.with_suffix(f".{format}")
+            if path_or_database.suffix != f".{formatter}":
+                logging.warning("Change file format to %s", formatter)
+                path_or_database = path_or_database.with_suffix(f".{formatter}")
             else:
                 logging.info("Saving dataset to %s", path_or_database)
-            match format:
+            match formatter:
                 case "csv":
                     self.datas.to_csv(path_or_database, index=False)
                 case "xlsx":
@@ -160,9 +160,10 @@ class EveryaiDataset:
                 case "json":
                     self.datas.to_json(path_or_database, orient="records")
                 case _:
-                    logging.error("Invalid format: %s", format)
+                    logging.error("Invalid format: %s", formatter)
 
-    def _initialize_mongo_connection(self):
+    @staticmethod
+    def _initialize_mongo_connection():# -> Database:
         mongodb_config = get_config(MONGO_CONFIG_PATH)
         result = get_mongo_connection(**mongodb_config)
         logging.info("Use default mongodb: %s", result)
