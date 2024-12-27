@@ -33,10 +33,7 @@ class Data_loader:
         self.filter = data_filter
 
     def load_data2list(self, max_count: int = None):
-        if (
-            Path(self.file_name_or_path).exists()
-            or self.file_type == "huggingface"
-        ):
+        if Path(self.file_name_or_path).exists() or self.file_type == "huggingface":
             match self.file_type:
                 case "csv":
                     dataset = pd.read_csv(self.file_name_or_path)
@@ -69,9 +66,7 @@ class Data_loader:
         if max_count is not None and dataset is not None:
             dataset = dataset.head(max_count)
         else:
-            logging.info(
-                "Max count is None and all the records will be loaded"
-            )
+            logging.info("Max count is None and all the records will be loaded")
         dataset.rename(
             columns={
                 self.question_column: "question",

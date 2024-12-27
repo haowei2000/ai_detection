@@ -12,9 +12,7 @@ class CrossAttentionFusion(nn.Module):
 
     def forward(self, f1, f2, f3):
         # 将所有特征拼接后输入注意力模块
-        merged_features = torch.cat((f1, f2, f3), dim=-1).unsqueeze(
-            0
-        )  # 添加batch维度
+        merged_features = torch.cat((f1, f2, f3), dim=-1).unsqueeze(0)  # 添加batch维度
         attn_output, _ = self.cross_attention(
             merged_features, merged_features, merged_features
         )
