@@ -31,9 +31,7 @@ class Generator:
     ) -> str:
         client = OpenAI(api_key=api_key, base_url=base_url)
         messages = [{"role": "user", "content": user_input}]
-        result = client.chat.completions.create(
-            messages=messages, model=model_name
-        )
+        result = client.chat.completions.create(messages=messages, model=model_name)
         return result.choices[0].message.content
 
     def _huggingface_generate(
@@ -48,9 +46,7 @@ class Generator:
                 logging.info("Using glm-4-9b-chat model")
                 logging.info("load model from %s", model_path_or_name)
                 if self.tokenizer is None:
-                    self.tokenizer = AutoTokenizer.from_pretrained(
-                        model_path_or_name
-                    )
+                    self.tokenizer = AutoTokenizer.from_pretrained(model_path_or_name)
                 else:
                     self.tokenizer = self.tokenizer
                     logging.info("Use existing tokenizer")

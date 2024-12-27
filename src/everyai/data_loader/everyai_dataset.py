@@ -111,7 +111,10 @@ class EveryaiDataset:
                 path_or_database = Path(path_or_database)
             if not isinstance(path_or_database, Path):
                 logging.error("Invalid file name: %s", path_or_database)
-            if path_or_database is not None and path_or_database.suffix != f".{formatter}":
+            if (
+                path_or_database is not None
+                and path_or_database.suffix != f".{formatter}"
+            ):
                 logging.warning("Change file format to %s", formatter)
                 path_or_database = path_or_database.with_suffix(f".{formatter}")
             else:
@@ -163,7 +166,7 @@ class EveryaiDataset:
                     logging.error("Invalid format: %s", formatter)
 
     @staticmethod
-    def _initialize_mongo_connection():# -> Database:
+    def _initialize_mongo_connection():  # -> Database:
         mongodb_config = get_config(MONGO_CONFIG_PATH)
         result = get_mongo_connection(**mongodb_config)
         logging.info("Use default mongodb: %s", result)
