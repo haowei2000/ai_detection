@@ -33,18 +33,21 @@ class Data_loader:
         self.filter = data_filter
 
     def load_data2list(self, max_count: int = None):
-        if Path(self.file_name_or_path).exists() or self.file_type == "huggingface":
+        if (
+            Path(self.file_name_or_path).exists()
+            or self.file_type == "huggingface"
+        ):
             match self.file_type:
                 case "csv":
-                    data = pd.read_csv(self.file_name_or_path)
+                    dataset = pd.read_csv(self.file_name_or_path)
                 case "xlsx":
-                    data = pd.read_excel(self.file_name_or_path)
+                    dataset = pd.read_excel(self.file_name_or_path)
                 case "jsonl":
-                    data = pd.read_json(self.file_name_or_path, lines=True)
+                    dataset = pd.read_json(self.file_name_or_path, lines=True)
                 case "json":
-                    data = pd.read_json(self.file_name_or_path)
+                    dataset = pd.read_json(self.file_name_or_path)
                 case "huggingface":
-                    data = load_dataset(path=self.file_name_or_path)[
+                    dataset = load_dataset(path=self.file_name_or_path)[
                         "train"
                     ].to_pandas()
                 case _:
@@ -54,30 +57,36 @@ class Data_loader:
         else:
             logging.error(f"File not found: {self.file_name_or_path}")
         if self.filter is not None:
-            data = self.filter(data)
+            dataset = self.filter(dataset)
         else:
-            data = default_filter(data)
+            dataset = default_filter(dataset)
             logging.info(
                 (
                     "Default filter is applied, if you want to apply custom filter, "
                     "please provide the filter function"
                 )
             )
-        if max_count is not None and data is not None:
-            data = data.head(max_count)
+        if max_count is not None and dataset is not None:
+            dataset = dataset.head(max_count)
         else:
-            logging.info("Max count is None and all the records will be loaded")
-        data.rename(
+            logging.info(
+                "Max count is None and all the records will be loaded"
+            )
+        dataset.rename(
             columns={
                 self.question_column: "question",
                 self.answer_column: "answer",
             },
             inplace=True,
         )
-        return data[["question", "answer"]].to_dict(orient="records")
+        return dataset[["question", "answer"]].to_dict(orient="records")
 
     def apply_filter(self, orginal_data: pd.DataFrame) -> pd.DataFrame:
-        return orginal_data if self.filter is None else orginal_data[orginal_data.apply(self.filter, axis=1)]
+        return (
+            orginal_data
+            if self.filter is None
+            else orginal_data[orginal_data.apply(self.filter, axis=1)]
+        )
 
 
 if __name__ == "__main__":

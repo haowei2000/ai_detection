@@ -82,15 +82,14 @@ def topic():
             logging.info(f"Category: {catogeory}")
             docs = everyai_dataset.datas[catogeory].tolist()
             logging.info(f"Number of documents: {len(docs)}")
-            docs = [
-                lambda x: split_remove_stopwords_punctuation(
-                    x, language=everyai_dataset.language
-                ),
-                docs,
+            new_docs = []
+            new_docs = [
+                split_remove_stopwords_punctuation(doc, language=everyai_dataset.language)
+                for doc in docs
             ]
             create_topic(
-                docs,
-                FIG_PATH / everyai_dataset.data_name / catogeory,
+                docs=new_docs,
+                output_folder=FIG_PATH / everyai_dataset.data_name / catogeory,
                 topic_config=topic_config,
             )
             logging.info(f"Topic created for {catogeory}")

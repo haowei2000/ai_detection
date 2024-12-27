@@ -13,9 +13,16 @@ import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (accuracy_score, auc, confusion_matrix, f1_score,
-                             precision_recall_curve, precision_score,
-                             recall_score, roc_curve)
+from sklearn.metrics import (
+    accuracy_score,
+    auc,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_curve,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.svm import SVC
@@ -187,7 +194,7 @@ class TextClassifer:
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
         )
         return self.texts, self.labels, self.data_name
-    
+
     def show_score(self):
         self.score = evaluate_classification_model(
             self.data.y_test,
@@ -230,7 +237,9 @@ def _init_sklearn_pipeline(pipeline_config: list[dict]):
         if step_name in step_dict:
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
-            logging.warning(f"Step {step_name} not recognized and will be skipped")
+            logging.warning(
+                f"Step {step_name} not recognized and will be skipped"
+            )
     return make_pipeline(*[step[1] for step in steps])
 
 
@@ -289,7 +298,9 @@ class SklearnClassifer(TextClassifer):
             raise ValueError("Model not supported")
 
         if classfiy_config["tokenizer_name"] in tokenizer_dict:
-            self.tokenizer = tokenizer_dict[classfiy_config["tokenizer_name"]]()
+            self.tokenizer = tokenizer_dict[
+                classfiy_config["tokenizer_name"]
+            ]()
         else:
             logging.error("Tokenizer not supported")
             raise ValueError("Tokenizer not supported")
