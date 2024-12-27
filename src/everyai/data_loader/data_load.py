@@ -76,8 +76,8 @@ class Data_loader:
         )
         return data[["question", "answer"]].to_dict(orient="records")
 
-    def apply_filter(self, data: pd.DataFrame) -> pd.DataFrame:
-        return data if self.filter is None else data[data.apply(self.filter, axis=1)]
+    def apply_filter(self, orginal_data: pd.DataFrame) -> pd.DataFrame:
+        return orginal_data if self.filter is None else orginal_data[orginal_data.apply(self.filter, axis=1)]
 
 
 if __name__ == "__main__":
