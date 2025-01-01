@@ -44,7 +44,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 generate = "everyai.main:generate"
 topic = "everyai.main:topic"
-classfiy = "everyai.main:classfiy"
+classify = "everyai.main:classify"
 every = "everyai.main:main"
 
 [[tool.poetry.source]]

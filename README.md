@@ -46,7 +46,7 @@ EveryAI: For any QA text dataset (question and human response), generate AI resp
   - [Optional Features](#optional-features)
     - [**Feature 1: Use your dataset**](#feature-1-use-your-dataset)
     - [**Feature 2: Choose Generate AI model**](#feature-2-choose-generate-ai-model)
-    - [**Feature 3: Choose Classfier model**](#feature-3-choose-classfier-model)
+    - [**Feature 3: Choose classifier model**](#feature-3-choose-classifier-model)
     - [**Feature 4: Use the mongodb database to save and load the dataset**](#feature-4-use-the-mongodb-database-to-save-and-load-the-dataset)
 - [Frameworks Used](#frameworks-used)
 - [Contributors](#contributors)
@@ -74,7 +74,7 @@ filetree
 │  │  └── /data_loader/
 │  │  └── /generator/
 │  │  └── /topic/
-│  │  └── /classfier/
+│  │  └── /classifier/
 │  │  └── /explaination/
 ├── /tests/
 └── /util/
@@ -129,13 +129,13 @@ To get a local copy up and running follow these simple steps.
         poetry run topic
         ```
 
-      - Classify between human responses and AI responses with the dataset in [data.yaml](src/everyai/config/data.yaml) and the classfier model in [classify.yaml](src/everyai/config/classify.yaml), and make explaination with `lime` ([lime.yaml](src/everyai/config/lime.yaml)) and `shap` (shap[shap.yaml](src/everyai/config/shap.yaml))
+      - classify between human responses and AI responses with the dataset in [data.yaml](src/everyai/config/data.yaml) and the classifier model in [classify.yaml](src/everyai/config/classify.yaml), and make explaination with `lime` ([lime.yaml](src/everyai/config/lime.yaml)) and `shap` (shap[shap.yaml](src/everyai/config/shap.yaml))
 
         ```sh
-        poetry run classfiy
+        poetry run classify
         ```
 
-      - Run the generate, topic, classfiy together
+      - Run the generate, topic, classify together
   
         ```sh
         poetry run every
@@ -208,25 +208,25 @@ There are 2 ways to generate AI response:
       model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
       ```
 
-### **Feature 3: Choose Classfier model**
+### **Feature 3: Choose classifier model**
 
-There are 3 optional classfier model to detect the human response and AI response:
+There are 3 optional classifier model to detect the human response and AI response:
 
 1. Use the sklearn model.
 
-    You can specify the `model_name` in the [classify.yaml](src/everyai/config/classfiy.yaml)
+    You can specify the `model_name` in the [classify.yaml](src/everyai/config/classify.yaml)
 
     For example, if you want to use the `SVM` model and `Tf-idf` tokenizer in sklearn, you can add the following configuration to the [classify.yaml](src/everyai/config/classify.yaml):
 
     ```yaml
-    classfier_list:
+    classifier_list:
     - model_name: "SVM"
       tokenizer_name: "TfidfVectorizer"
       split_size:
         train_size: 0.7
         test_size: 0.15
         valid_size: 0.15
-      classfier_type: "sklearn"
+      classifier_type: "sklearn"
       model_config:
         gamma: "auto"
       tokenizer_config:

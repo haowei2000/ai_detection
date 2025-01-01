@@ -2,7 +2,7 @@ import logging
 
 from tqdm import tqdm
 
-from everyai.classfier.classify import SklearnClassifer
+from everyai.classifier.classify import SklearnClassifer
 from everyai.config.config import get_config
 from everyai.data_loader.data_load import Data_loader
 from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
@@ -10,7 +10,7 @@ from everyai.data_loader.everyai_dataset import EveryaiDataset
 from everyai.data_loader.mongo_connection import get_mongo_connection
 from everyai.everyai_path import (
     BERT_TOPIC_CONFIG_PATH,
-    CLASSFIY_CONFIG_PATH,
+    CLASSIFY_CONFIG_PATH,
     DATA_LOAD_CONFIG_PATH,
     DATA_PATH,
     FIG_PATH,
@@ -96,7 +96,7 @@ def topic():
             logging.info("Topic created for %s", catogeory)
 
 
-def classfiy():
+def classify():
     data_list_configs = get_config(file_path=DATA_LOAD_CONFIG_PATH)
     logging.info("Data config: %s", data_list_configs)
     for data_config in data_list_configs["data_list"]:
@@ -109,34 +109,34 @@ def classfiy():
         texts, labels = everyai_dataset.get_records_with_1ai(
             ["THUDM/glm-4-9b-chat-hf"]
         )
-        for classfiy_config in get_config(file_path=CLASSFIY_CONFIG_PATH)[
-            "classfier_list"
+        for classify_config in get_config(file_path=CLASSIFY_CONFIG_PATH)[
+            "classifier_list"
         ]:
-            match classfiy_config["classfier_type"]:
+            match classify_config["classifier_type"]:
                 case "sklearn":
-                    text_classfier = SklearnClassifer(
-                        **classfiy_config,
+                    text_classifier = SklearnClassifer(
+                        **classify_config,
                     )
                 case _:
-                    raise ValueError("Classfier type not supported")
-            text_classfier.load_data(
+                    raise ValueError("Classifier type not supported")
+            text_classifier.load_data(
                 texts, labels, data_name=everyai_dataset.data_name
             )
-            text_classfier.train()
-            text_classfier.test()
-            text_classfier.save_model()
-            text_classfier.show_score()
-            logging.info("Model saved for %s", classfiy_config["model_name"])
-            lime_explanation = LimeExplanation(classfier=text_classfier)
+            text_classifier.train()
+            text_classifier.test()
+            text_classifier.save_model()
+            text_classifier.show_score()
+            logging.info("Model saved for %s", classify_config["model_name"])
+            lime_explanation = LimeExplanation(classifier=text_classifier)
             lime_explanation.explain()
-            shap_explanation = ShapExplanation(classfier=text_classfier)
+            shap_explanation = ShapExplanation(classifier=text_classifier)
             shap_explanation.explain()
 
 
 def main():
     generate()
     topic()
-    classfiy()
+    classify()
 
 
 if __name__ == "__main__":
