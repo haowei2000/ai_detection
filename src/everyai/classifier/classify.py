@@ -43,7 +43,7 @@ def label_encode(labels):
     return LabelEncoder().fit_transform(labels)
 
 
-def split_data(self, x, y, train_size=0.8, valid_size=0.1, test_size=0.1):# -> tuple:
+def split_data(x, y, train_size=0.8, valid_size=0.1, test_size=0.1):# -> tuple:
     # 获取原始数据的索引
     original_indices = (
         x.index if isinstance(x, pd.DataFrame) else np.arange(x.shape[0])
@@ -55,7 +55,7 @@ def split_data(self, x, y, train_size=0.8, valid_size=0.1, test_size=0.1):# -> t
             x,
             y,
             original_indices,
-            test_size,
+            test_size=test_size,
             random_state=42,
         )
     )
@@ -65,7 +65,7 @@ def split_data(self, x, y, train_size=0.8, valid_size=0.1, test_size=0.1):# -> t
             x_train,
             y_train,
             train_indices,
-            valid_size / (train_size + valid_size),
+            test_size=valid_size / (train_size + valid_size),
             random_state=42,
         )
     )
@@ -242,11 +242,15 @@ class TextClassifer:
             / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}",
         )
 
-    def save_model(self, path):
+    def save_model(self, path=None):
+        if path is None:
+            path = self.model_path
         joblib.dump(self.model, path)
         logging.info("Model saved to %s", path)
         return self.model
 
-    def load_model(self, path):
+    def load_model(self, path=None):
+        if path is None:
+            path = self.model_path
         self.model = joblib.load(path)
         return self.model

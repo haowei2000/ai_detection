@@ -1,38 +1,42 @@
 import logging
 
-import numpy as np
-import pandas as pd
-import sklearn
 import xgboost as xgb
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
 
-from everyai.classfier.classify import TextClassifer, label_encode, split_data
+from everyai.classifier.classify import TextClassifer, label_encode, split_data
 
 
 def _init_sklearn_pipeline(pipeline_config: list[dict]):
     step_dict = {
-        "tf_idf": TfidfVectorizer,
-        "count_vectorizer": CountVectorizer,
-        "logistic_regression": LogisticRegression,
-        "random_forest": RandomForestClassifier,
-        "svm": SVC,
-        "xgboost": xgb.XGBClassifier,
-        "standard_scaler": sklearn.preprocessing.StandardScaler,
-        "min_max_scaler": sklearn.preprocessing.MinMaxScaler,
-        "pca": sklearn.decomposition.PCA,
-        "kmeans": sklearn.cluster.KMeans,
-        "knn": sklearn.neighbors.KNeighborsClassifier,
-        "decision_tree": sklearn.tree.DecisionTreeClassifier,
-        "naive_bayes": sklearn.naive_bayes.GaussianNB,
+        "tf_idf": TfidfVectorizer(),
+        "count_vectorizer": CountVectorizer(),
+        "logistic_regression": LogisticRegression(),
+        "random_forest": RandomForestClassifier(),
+        "svm": SVC(probability=True),
+        "xgboost": xgb.XGBClassifier(),
+        "standard_scaler": StandardScaler(),
+        "min_max_scaler": MinMaxScaler(),
+        "pca": PCA(),
+        "kmeans": KMeans(),
+        "knn": KNeighborsClassifier(),
+        "decision_tree": DecisionTreeClassifier(),
+        "naive_bayes": GaussianNB(),
     }
     steps = []
-    for step_name, step_params in pipeline_config.items():
-        if step_name in step_dict:
+    for step_name in pipeline_config:
+        if step_name in step_dict.items():
+            step_params = pipeline_config[step_name]
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
             logging.warning(
@@ -47,7 +51,7 @@ class SklearnClassifer(TextClassifer):
             model_name=classfiy_config["model_name"],
             tokenizer_name=classfiy_config["tokenizer_name"],
         )
-        logging.info("Classfier config: %s", classfiy_config)
+        logging.info("classifier config: %s", classfiy_config)
         split_size = classfiy_config.get("split_size", {})
         self.train_size = split_size.get("train_size", 0.8)
         self.test_size = split_size.get("test_size", 0.1)
@@ -96,10 +100,15 @@ class SklearnClassifer(TextClassifer):
             )
 
     def _tokenize(self, texts, labels):
-        return self.tokenizer.fit_transform(texts),label_encode(labels)
+        return self.tokenizer.fit_transform(texts), label_encode(labels)
 
     def train(self):
-        self.data.x = self._tokenize(self.texts,self.labels)
+        self.data.x, self.data.y = self._tokenize(self.texts, self.labels)
+        logging.info(
+            "%s texts are tokenized and %s labels are tokenized",
+            len(self.texts),
+            len(self.labels),
+        )
         (
             self.data.x_train,
             self.data.x_valid,

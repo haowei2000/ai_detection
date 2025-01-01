@@ -1,5 +1,5 @@
 classifier_list:
-- model_name: "SVM"
+- model_name: "random_forest"
   tokenizer_name: "TfidfVectorizer"
   split_size:
     train_size: 0.7
@@ -8,9 +8,8 @@ classifier_list:
   classifier_type: "sklearn"
   pipeline:
   - "TfidfVectorizer":
-      encoding: "utf-8"
-  - "SVM":
-      gamma: "auto"
+    encoding: "utf-8"
+  - "random_forest":
 - model_name: "bert"
   tokenizer_name: "bert"
   split_size:

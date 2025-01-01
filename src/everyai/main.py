@@ -2,21 +2,15 @@ import logging
 
 from tqdm import tqdm
 
-from everyai.classifier.classify import SklearnClassifer
+from everyai.classifier.sklearn_classifier import SklearnClassifer
 from everyai.config.config import get_config
 from everyai.data_loader.data_load import Data_loader
 from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
 from everyai.data_loader.everyai_dataset import EveryaiDataset
 from everyai.data_loader.mongo_connection import get_mongo_connection
-from everyai.everyai_path import (
-    BERT_TOPIC_CONFIG_PATH,
-    CLASSIFY_CONFIG_PATH,
-    DATA_LOAD_CONFIG_PATH,
-    DATA_PATH,
-    FIG_PATH,
-    GENERATE_CONFIG_PATH,
-    MONGO_CONFIG_PATH,
-)
+from everyai.everyai_path import (BERT_TOPIC_CONFIG_PATH, CLASSIFY_CONFIG_PATH,
+                                  DATA_LOAD_CONFIG_PATH, DATA_PATH, FIG_PATH,
+                                  GENERATE_CONFIG_PATH, MONGO_CONFIG_PATH)
 from everyai.explanation.explain import LimeExplanation, ShapExplanation
 from everyai.generator.generate import Generator
 from everyai.topic.my_bertopic import create_topic
@@ -134,8 +128,8 @@ def classify():
 
 
 def main():
-    generate()
-    topic()
+    # generate()
+    # topic()
     classify()
 
 

@@ -2,7 +2,7 @@ from typing import List
 
 from sklearn.calibration import LabelEncoder
 import torch
-from everyai.classfier.classify import TextClassifer
+from everyai.classifier.classify import TextClassifer
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 
