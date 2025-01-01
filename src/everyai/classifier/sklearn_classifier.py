@@ -39,9 +39,7 @@ def _init_sklearn_pipeline(pipeline_config: list[dict]):
             step_params = pipeline_config[step_name]
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
-            logging.warning(
-                "Step %s not recognized and will be skipped", step_name
-            )
+            logging.warning("Step %s not recognized and will be skipped", step_name)
     return make_pipeline(*[step[1] for step in steps])
 
 
@@ -74,9 +72,7 @@ class SklearnClassifer(TextClassifer):
             raise ValueError("Model not supported")
 
         if classfiy_config["tokenizer_name"] in tokenizer_dict:
-            self.tokenizer = tokenizer_dict[
-                classfiy_config["tokenizer_name"]
-            ]()
+            self.tokenizer = tokenizer_dict[classfiy_config["tokenizer_name"]]()
         else:
             logging.error("Tokenizer not supported")
             raise ValueError("Tokenizer not supported")

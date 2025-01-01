@@ -8,9 +8,15 @@ from everyai.data_loader.data_load import Data_loader
 from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
 from everyai.data_loader.everyai_dataset import EveryaiDataset
 from everyai.data_loader.mongo_connection import get_mongo_connection
-from everyai.everyai_path import (BERT_TOPIC_CONFIG_PATH, CLASSIFY_CONFIG_PATH,
-                                  DATA_LOAD_CONFIG_PATH, DATA_PATH, FIG_PATH,
-                                  GENERATE_CONFIG_PATH, MONGO_CONFIG_PATH)
+from everyai.everyai_path import (
+    BERT_TOPIC_CONFIG_PATH,
+    CLASSIFY_CONFIG_PATH,
+    DATA_LOAD_CONFIG_PATH,
+    DATA_PATH,
+    FIG_PATH,
+    GENERATE_CONFIG_PATH,
+    MONGO_CONFIG_PATH,
+)
 from everyai.explanation.explain import LimeExplanation, ShapExplanation
 from everyai.generator.generate import Generator
 from everyai.topic.my_bertopic import create_topic
@@ -33,16 +39,12 @@ def generate():
                 file_path=data_config["file_path"],
                 data_type=data_config["data_type"],
             )
-            qa_datas = data_loader.load_data2list(
-                max_count=data_config["max_count"]
-            )
+            qa_datas = data_loader.load_data2list(max_count=data_config["max_count"])
             everyai_dataset = EveryaiDataset(
                 dataname=data_config["data_name"],
                 ai_list=[generate_config["model_name"]],
             )
-            for data in tqdm(
-                qa_datas, desc="Generating data", total=len(qa_datas)
-            ):
+            for data in tqdm(qa_datas, desc="Generating data", total=len(qa_datas)):
                 ai_response: str = generator.generate(data["question"])
                 everyai_dataset.insert_ai_response(
                     question=data["question"],
@@ -100,9 +102,7 @@ def classify():
         )
         everyai_dataset.load(formatter="mongodb")
         logging.info("Loaded data: %s", everyai_dataset.data_name)
-        texts, labels = everyai_dataset.get_records_with_1ai(
-            ["THUDM/glm-4-9b-chat-hf"]
-        )
+        texts, labels = everyai_dataset.get_records_with_1ai(["THUDM/glm-4-9b-chat-hf"])
         for classify_config in get_config(file_path=CLASSIFY_CONFIG_PATH)[
             "classifier_list"
         ]:

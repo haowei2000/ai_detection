@@ -1,9 +1,10 @@
 from typing import List
 
-from sklearn.calibration import LabelEncoder
 import torch
+from sklearn.calibration import LabelEncoder
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
 from everyai.classifier.classify import TextClassifer
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 
 class HuggingfaceClassifer(TextClassifer):
@@ -31,20 +32,18 @@ class HuggingfaceClassifer(TextClassifer):
             tokenizer,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_name
-        )
-        self.tokenzier_config  = tokenzier_config
-    
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        self.tokenzier_config = tokenzier_config
+
     def _label_encode(self, labels: List[str]):
         label_encoder = LabelEncoder()
         label_ids = label_encoder.fit_transform(labels)
         return torch.tensor(label_ids, dtype=torch.long)
 
-    def _tokenize(self, texts,labels):
+    def _tokenize(self, texts, labels):
         def tokenzier_fn(examples):
             return self.tokenizer(texts, **self.tokenzier_config)
-    
+
     def train(self):
         self.data.y = self._label_encode(self.labels)
         self.model.train()
