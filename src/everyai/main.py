@@ -2,7 +2,7 @@ import logging
 
 from tqdm import tqdm
 
-from everyai.classfier.classfy import SklearnClassifer
+from everyai.classfier.classify import SklearnClassifer
 from everyai.config.config import get_config
 from everyai.data_loader.data_load import Data_loader
 from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation

@@ -5,7 +5,7 @@ import shap
 from lime.lime_text import LimeTextExplainer
 from sklearn.pipeline import make_pipeline
 
-from everyai.classfier.classfy import TextClassifer
+from everyai.classfier.classify import TextClassifer
 from everyai.everyai_path import FIG_PATH
 
 
