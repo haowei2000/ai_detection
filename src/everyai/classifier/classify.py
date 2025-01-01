@@ -43,31 +43,26 @@ def label_encode(labels):
     return LabelEncoder().fit_transform(labels)
 
 
-def split_data(x, y, train_size=0.8, valid_size=0.1, test_size=0.1):# -> tuple:
+# -> tuple:
+def split_data(x, y, train_size=0.8, valid_size=0.1, test_size=0.1):
     # 获取原始数据的索引
-    original_indices = (
-        x.index if isinstance(x, pd.DataFrame) else np.arange(x.shape[0])
-    )
+    original_indices = x.index if isinstance(x, pd.DataFrame) else np.arange(x.shape[0])
 
     # 第一次划分: 训练集和测试集
-    x_train, x_test, y_train, y_test, train_indices, test_indices = (
-        train_test_split(
-            x,
-            y,
-            original_indices,
-            test_size=test_size,
-            random_state=42,
-        )
+    x_train, x_test, y_train, y_test, train_indices, test_indices = train_test_split(
+        x,
+        y,
+        original_indices,
+        test_size=test_size,
+        random_state=42,
     )
     # 第二次划分: 训练集和验证集
-    x_train, x_valid, y_train, y_valid, train_indices, valid_indices = (
-        train_test_split(
-            x_train,
-            y_train,
-            train_indices,
-            test_size=valid_size / (train_size + valid_size),
-            random_state=42,
-        )
+    x_train, x_valid, y_train, y_valid, train_indices, valid_indices = train_test_split(
+        x_train,
+        y_train,
+        train_indices,
+        test_size=valid_size / (train_size + valid_size),
+        random_state=42,
     )
     return (
         x_train,
@@ -211,8 +206,7 @@ class TextClassifer:
         )
         self.model_config = None
         self.model_path = (
-            MODEL_PATH
-            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
+            MODEL_PATH / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
         self.pipeline = pipeline if pipeline is not None else None
 
@@ -222,9 +216,7 @@ class TextClassifer:
             raise ValueError("Length of texts and labels should be same")
         self.texts = texts
         self.labels = labels
-        logging.info(
-            "Loading data: %s to classfier %s", data_name, self.model_name
-        )
+        logging.info("Loading data: %s to classfier %s", data_name, self.model_name)
         self.data_name = data_name
         self.classfier_name = (
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
