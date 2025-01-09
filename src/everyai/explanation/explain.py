@@ -6,7 +6,7 @@ from lime.lime_text import LimeTextExplainer
 from sklearn.pipeline import make_pipeline
 
 from everyai.classifier.classify import TextClassifer
-from everyai.everyai_path import FIG_PATH
+from everyai.utils.everyai_path import FIG_PATH
 
 
 class Explanation:

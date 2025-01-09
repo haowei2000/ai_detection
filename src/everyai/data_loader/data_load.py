@@ -1,12 +1,12 @@
+from collections.abc import Callable
 import logging
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 from datasets import load_dataset
 
 from everyai.data_loader.filter import default_filter
-from everyai.everyai_path import DATA_PATH
+from everyai.utils.everyai_path import DATA_PATH
 
 
 class Data_loader:
@@ -32,22 +32,27 @@ class Data_loader:
         self.answer_column = answer_column
         self.filter = data_filter
 
-    def load_data2list(self, max_count: int = None):
+    def load_data(
+        self, max_count: int = None, return_type: str = "list"
+    ) -> list[dict] | pd.DataFrame:
         if (
             Path(self.file_name_or_path).exists()
             or self.file_type == "huggingface"
         ):
+            logging.info("Loading data from %s", self.file_name_or_path)
             match self.file_type:
                 case "csv":
-                    dataset = pd.read_csv(self.file_name_or_path)
+                    loaded_data = pd.read_csv(self.file_name_or_path)
                 case "xlsx":
-                    dataset = pd.read_excel(self.file_name_or_path)
+                    loaded_data = pd.read_excel(self.file_name_or_path)
                 case "jsonl":
-                    dataset = pd.read_json(self.file_name_or_path, lines=True)
+                    loaded_data = pd.read_json(
+                        self.file_name_or_path, lines=True
+                    )
                 case "json":
-                    dataset = pd.read_json(self.file_name_or_path)
+                    loaded_data = pd.read_json(self.file_name_or_path)
                 case "huggingface":
-                    dataset = load_dataset(path=self.file_name_or_path)[
+                    loaded_data = load_dataset(path=self.file_name_or_path)[
                         "train"
                     ].to_pandas()
                 case _:
@@ -57,25 +62,35 @@ class Data_loader:
         else:
             logging.error("File not found: %s", self.file_name_or_path)
         if self.filter is not None:
-            dataset = self.filter(dataset)
+            loaded_data = self.filter(loaded_data)
         else:
-            dataset = default_filter(dataset)
+            loaded_data = default_filter(loaded_data)
             logging.info(
                 "Default filter is applied, if you want to apply custom filter, "
                 "please provide the filter function"
             )
-        if max_count is not None and dataset is not None:
-            dataset = dataset.head(max_count)
+        if max_count is not None and loaded_data is not None:
+            loaded_data = loaded_data.head(max_count)
         else:
-            logging.info("Max count is None and all the records will be loaded")
-        dataset.rename(
+            logging.info(
+                "Max count is None and all the records will be loaded"
+            )
+        loaded_data.rename(
             columns={
                 self.question_column: "question",
                 self.answer_column: "answer",
             },
             inplace=True,
         )
-        return dataset[["question", "answer"]].to_dict(orient="records")
+        if return_type == "pandas":
+            result = loaded_data
+        elif return_type == "list":
+            result = loaded_data[["question", "answer"]].to_dict(
+                orient="records"
+            )
+        else:
+            logging.error("Invalid return type")
+        return result
 
     def apply_filter(self, orginal_data: pd.DataFrame) -> pd.DataFrame:
         return (
@@ -87,8 +102,8 @@ class Data_loader:
 
 if __name__ == "__main__":
     loader = Data_loader("wanghw/human-ai-comparison", "question")
-    data = loader.load_data2list()
+    data = loader.load_data()
     print(data)
     loader = Data_loader("test.invalid", "question")
-    data = loader.load_data2list()
+    data = loader.load_data()
     print(data)

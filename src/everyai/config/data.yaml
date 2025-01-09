@@ -1,14 +1,23 @@
 data_list:
+# - data_type: huggingface
+#   data_name: human_ai_comparsion
+#   file_path: wanghw/human-ai-comparison
+#   question_column: question
+#   answer_column: "answer"
+#   max_count: 200
+#   language: Chinese
 - data_type: huggingface
-  data_name: human_ai_comparsion
-  file_path: wanghw/human-ai-comparison
-  question_column: question
-  answer_column: "answer"
-  max_count: 200
-  language: Chinese
-- data_type: csv
-  data_name: human_ai_comparsion
-  file_path: wanghw/human-ai-comparison
-  question_column: question
-  answer_column: answer
-  max_count: 200
+  data_name: reddit_finance_43_250k
+  file_path: winddude/reddit_finance_43_250k
+  question_column: title
+  answer_column: body
+  max_count: 5000
+  language: English
+
+# - data_type: csv
+#   data_name: human_ai_comparsion
+#   file_path: "/workspace/project/everyAI/src/everyai/data/human_ai_comparsion.csv"
+#   question_column: question
+#   answer_column: answer
+#   max_count: 200
+#   language: Chinese

@@ -14,12 +14,17 @@ generate_list:
 #     pad_token_id: 151329
 #     temperature: 0.8
 #     top_p: 0.8
+# - generator_type: "huggingface"
+#   model_name: "THUDM/glm-4-9b-chat-hf"
+#   model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
+#   gen_kwargs:
+#     do_sample: true
+#     max_new_tokens: 128
+#     temperature: 0.8
+#     top_p: 0.8
+#     top_k: 1
 - generator_type: "huggingface"
-  model_name: "THUDM/glm-4-9b-chat-hf"
-  model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
+  model_name: "Qwen/Qwen2.5-7B-Instruct"
+  model_path: "/root/.cache/modelscope/hub/Qwen/Qwen2.5-7B-Instruct"
   gen_kwargs:
-    do_sample: true
     max_new_tokens: 128
-    temperature: 0.8
-    top_p: 0.8
-    top_k: 1

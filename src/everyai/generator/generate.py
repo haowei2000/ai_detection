@@ -1,12 +1,12 @@
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from openai import OpenAI
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from everyai.config.config import get_config
-from everyai.everyai_path import GENERATE_CONFIG_PATH
+from everyai.generator.huggingface_generate import glm4, qwen2_5
+from everyai.utils.everyai_path import GENERATE_CONFIG_PATH
+from everyai.utils.load_config import get_config
 
 
 class Generator:
@@ -42,57 +42,30 @@ class Generator:
         model_path_or_name: Path | str,
         gen_kwargs: dict,
     ) -> str:
-        generated_text = ""
         match model_path_or_name:
-            case _ if "glm-4-9b-chat" in model_path_or_name:
-                logging.info("Using glm-4-9b-chat model")
-                logging.info("load model from %s", model_path_or_name)
-                if self.tokenizer is None:
-                    self.tokenizer = AutoTokenizer.from_pretrained(
-                        model_path_or_name
-                    )
-                else:
-                    self.tokenizer = self.tokenizer
-                    logging.info("Use existing tokenizer")
-                if self.model is None:
-                    self.model = AutoModelForCausalLM.from_pretrained(
-                        model_path_or_name, device_map="auto"
-                    )
-                else:
-                    self.model = self.model
-                    logging.info("Use existing model")
-                message = [
-                    {
-                        "role": "system",
-                        "content": "Answer the following question.",
-                    },
-                    {
-                        "role": "user",
-                        "content": user_input,
-                    },
-                ]
-                inputs = self.tokenizer.apply_chat_template(
-                    message,
-                    return_tensors="pt",
-                    add_generation_prompt=True,
-                    return_dict=True,
-                ).to(self.model.device)
-
-                input_len = inputs["input_ids"].shape[1]
-                gen_kwargs = gen_kwargs | {
-                    "input_ids": inputs["input_ids"],
-                    "attention_mask": inputs["attention_mask"],
-                }
-                out = self.model.generate(**gen_kwargs)
-                generated_text = self.tokenizer.decode(
-                    out[0][input_len:], skip_special_tokens=True
+            case _ if "glm-4" in model_path_or_name.lower():
+                logging.info("glm-4 generator: %s", model_path_or_name)
+                self.model, self.tokenizer, response = glm4(
+                    user_input=user_input,
+                    model_path_or_name=model_path_or_name,
+                    gen_kwargs=gen_kwargs,
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                )
+            case _ if "qwen2.5" in model_path_or_name.lower():
+                logging.info("qwen2.5 generator: %s", model_path_or_name)
+                self.model, self.tokenizer, response = qwen2_5(
+                    user_input=user_input,
+                    model_path_or_name=model_path_or_name,
+                    gen_kwargs=gen_kwargs,
+                    model=self.model,
+                    tokenizer=self.tokenizer,
                 )
             case _:
-                logging.error("Unsupported model: %s", model_path_or_name)
-        return generated_text
+                raise ValueError("Unsupported model: %s", model_path_or_name)
+        return response
 
     def generate(self, message: str) -> str:
-        response = ""
         if self.formatter is not None:
             message = self.formatter(message)
             logging.info("Formatted input: %s", message)
@@ -110,6 +83,7 @@ class Generator:
                 logging.info("Huggingface generator")
                 if "gen_kwargs" in self.config.keys():
                     self.gen_kwargs: dict = self.config["gen_kwargs"]
+                    logging.info("Generation kwargs: %s", self.gen_kwargs)
                 else:
                     logging.info("Generation kwargs is not provided")
                 if self.model_path is not None:

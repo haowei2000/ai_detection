@@ -5,9 +5,10 @@ import pandas as pd
 import pymongo
 import pymongo.database
 
-from everyai.config.config import get_config
+from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
 from everyai.data_loader.mongo_connection import get_mongo_connection
-from everyai.everyai_path import DATA_PATH, MONGO_CONFIG_PATH
+from everyai.utils.everyai_path import DATA_PATH, MONGO_CONFIG_PATH
+from everyai.utils.load_config import get_config
 
 
 class EveryaiDataset:
@@ -26,28 +27,39 @@ class EveryaiDataset:
             self.datas: pd.DataFrame = pd.DataFrame(
                 columns=["question", "human"]
             )
-            if ai_list is not None:
-                for ai_name in ai_list:
-                    self.datas[ai_name] = None
-            else:
-                logging.warning("No AI list provided")
+        if ai_list is not None:
+            for ai_name in ai_list:
+                self.datas[ai_name] = None
+        else:
+            logging.warning("No AI list provided")
         self.language: str = language
         self.max_length: int = 0
         self.min_length: int = 0
+
+    def data_process(self):
+        for col in ["question", "human"] + self.ai_list:
+            self.datas[col] = self.datas[col].apply(
+                split_remove_stopwords_punctuation, args=(self.language,)
+            )
 
     def add_ai(self, ai_name: str):
         self.ai_list.append(ai_name)
         self.datas[ai_name] = None
         logging.info("Add model: %s", ai_name)
 
-    def get_records_with_1ai(self, ai_list: list[str] = None):
+    def get_records_with_ai(self, ai_list: list[str] = None, only2class=False):
         texts = []
         labels = []
         if ai_list is None:
             ai_list = self.ai_list
-        for label in ["human"] + ai_list:
-            texts.extend(self.datas[label])
-            labels.extend([label] * len(self.datas[label]))
+        texts.extend(self.datas["human"])
+        labels.extend(["human"] * len(self.datas["human"]))
+        for ai_name in ai_list:
+            if only2class:
+                labels.extend("ai" * len(self.datas[ai_name]))
+            else:
+                labels.extend([ai_name] * len(self.datas[ai_name]))
+            texts.extend(self.datas[ai_name])
         return texts, labels
 
     def insert_ai_response(self, question, ai_name: str, ai_response: str):
@@ -71,7 +83,6 @@ class EveryaiDataset:
                 human_response
             )
 
-    # TODO Rename this here and in `insert_ai_response` and `insert_human_response`
     def _update_new_row(self, question, arg1, arg2):
         logging.info("Inserting new question: %s", question)
         new_row = pd.DataFrame({"question": [question], arg1: [arg2]})
@@ -89,7 +100,24 @@ class EveryaiDataset:
             self.datas.loc[self.datas["timestamp"].isnull(), "timestamp"] = (
                 pd.Timestamp.now()
             )
-        collection.insert_many(self.datas.to_dict(orient="records"))
+        # 构建批量操作列表
+        bulk_operations = []
+        for _, row in self.datas.iterrows():
+            query = {"question": row["question"]}
+            update = {"$set": {}}
+            for col in self.datas.columns:
+                if col != "question":
+                    update["$set"][col] = row[col]
+
+            bulk_operations.append({
+                "updateOne": {
+                    "filter": query,
+                    "update": update,
+                    "upsert": True
+                }
+            })
+        result = collection.bulk_write(bulk_operations)
+        logging.info("update %d records and insert %d records ", result.matched_count, result.upserted_count)
 
     def _load_from_mongodb(self, database: pymongo.database.Database):
         logging.info("Loading dataset from mongodb: %s", database)
@@ -102,9 +130,9 @@ class EveryaiDataset:
         self.datas = data
 
     def load(
-        self, path_or_database: str | Path = None, formatter: str = "csv"
+        self, path_or_database: str | Path = None, file_format: str = "csv"
     ):
-        if formatter == "mongodb":
+        if file_format == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
             else:
@@ -112,72 +140,58 @@ class EveryaiDataset:
             self._load_from_mongodb(path_or_database)
         else:
             if path_or_database is None:
-                path_or_database = DATA_PATH / f"{self.data_name}.{formatter}"
-            else:
-                logging.info("Load dataset from %s", path_or_database)
+                path_or_database = (
+                    DATA_PATH / f"{self.data_name}.{file_format}"
+                )
+            logging.info("Load dataset from %s", path_or_database)
             if isinstance(path_or_database, str):
                 path_or_database = Path(path_or_database)
-            if not isinstance(path_or_database, Path):
-                logging.error("Invalid file name: %s", path_or_database)
-            if (
-                path_or_database is not None
-                and path_or_database.suffix != f".{formatter}"
-            ):
-                logging.warning("Change file format to %s", formatter)
+            if path_or_database.suffix != f".{file_format}":
+                logging.warning("Change file format to %s", file_format)
                 path_or_database = path_or_database.with_suffix(
-                    f".{formatter}"
+                    f".{file_format}"
                 )
-            else:
-                logging.info("Loading dataset from %s", path_or_database)
-            match formatter:
-                case "csv":
+            match path_or_database.suffix:
+                case ".csv":
                     self.datas = pd.read_csv(path_or_database)
-                case "xlsx":
+                case ".xlsx":
                     self.datas = pd.read_excel(path_or_database)
-                case "json":
+                case ".json":
                     self.datas = pd.read_json(path_or_database)
                 case _:
-                    logging.error("Invalid format: %s", formatter)
+                    logging.error("Invalid format: %s", file_format)
         if self.datas is not None:
             self.ai_list = list(
                 set(self.datas.columns) - {"question", "human", "timestamp"}
             )
 
     def save(
-        self, path_or_database: str | Path = None, formatter: str = "csv"
+        self, path_or_database: str | Path = None, file_format: str = "csv"
     ):
-        if formatter == "mongodb":
+        if file_format == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
-            else:
-                logging.info("Save dataset to %s", path_or_database)
             self._save2mongodb(path_or_database)
         else:
             if path_or_database is None:
-                path_or_database = f"{self.data_name}.{formatter}"
-            else:
-                logging.info("Save dataset to %s", path_or_database)
+                path_or_database = f"{self.data_name}.{file_format}"
+            logging.info("Save dataset to %s", path_or_database)
             if isinstance(path_or_database, str):
                 path_or_database = Path(path_or_database)
-            if not isinstance(path_or_database, Path):
-                logging.error("Invalid file name: %s", path_or_database)
-                return
-            if path_or_database.suffix != f".{formatter}":
-                logging.warning("Change file format to %s", formatter)
+            if path_or_database.suffix != f".{file_format}":
+                logging.warning("Change file format to %s", file_format)
                 path_or_database = path_or_database.with_suffix(
-                    f".{formatter}"
+                    f".{file_format}"
                 )
-            else:
-                logging.info("Saving dataset to %s", path_or_database)
-            match formatter:
-                case "csv":
+            match path_or_database.suffix:
+                case ".csv":
                     self.datas.to_csv(path_or_database, index=False)
-                case "xlsx":
+                case ".xlsx":
                     self.datas.to_excel(path_or_database, index=False)
-                case "json":
+                case ".json":
                     self.datas.to_json(path_or_database, orient="records")
                 case _:
-                    logging.error("Invalid format: %s", formatter)
+                    logging.error("Invalid format: %s", file_format)
 
     @staticmethod
     def _initialize_mongo_connection():
