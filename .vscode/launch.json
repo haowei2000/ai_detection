@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "python": "${command:python.interpreterPath}",
+            "env": {
+                "PYTHONPATH": "/root/miniconda/envs/everyAI"
+            },
+            "args": [
+                // 在这里添加你的程序参数，例如 "arg1", "arg2"
+            ],
+            "cwd": "${workspaceFolder}/src",
+            "stopOnEntry": false,
+            "showReturnValue": true,
+            "justMyCode": false
+        }
+    ]
+}
