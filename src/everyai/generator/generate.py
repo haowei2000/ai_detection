@@ -31,9 +31,7 @@ class Generator:
     ) -> str:
         client = OpenAI(api_key=api_key, base_url=base_url)
         messages = [{"role": "user", "content": user_input}]
-        result = client.chat.completions.create(
-            messages=messages, model=model_name
-        )
+        result = client.chat.completions.create(messages=messages, model=model_name)
         return result.choices[0].message.content
 
     def _huggingface_generate(

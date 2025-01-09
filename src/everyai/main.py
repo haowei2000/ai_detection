@@ -1,6 +1,7 @@
 import logging
 
 import pandas as pd
+import torch
 from tqdm import tqdm
 
 from everyai.classifier.huggingface_classifier import HuggingfaceClassifer
@@ -22,7 +23,6 @@ from everyai.utils.everyai_path import (
     MONGO_CONFIG_PATH,
 )
 from everyai.utils.load_config import get_config
-import torch
 
 
 def generate():
@@ -50,9 +50,7 @@ def generate():
         )
         for generate_config in generate_list_configs["generate_list"]:
             generator = Generator(config=generate_config)
-            for data in tqdm(
-                qa_datas, desc="Generating data", total=len(qa_datas)
-            ):
+            for data in tqdm(qa_datas, desc="Generating data", total=len(qa_datas)):
                 ai_response: str = generator.generate(data["question"])
                 everyai_dataset.insert_ai_response(
                     question=data["question"],

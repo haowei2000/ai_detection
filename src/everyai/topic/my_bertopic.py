@@ -10,8 +10,9 @@ def create_topic(
     output_folder: Union[str, Path],
     embedding_model=None,
     topic_config: dict = None,
-) :
+):
     from bertopic import BERTopic
+
     if topic_config is None:
         topic_config = {}
     topic_model = BERTopic(embedding_model=embedding_model, min_topic_size=5)

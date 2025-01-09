@@ -1,5 +1,5 @@
-from collections.abc import Callable
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
@@ -35,10 +35,7 @@ class Data_loader:
     def load_data(
         self, max_count: int = None, return_type: str = "list"
     ) -> list[dict] | pd.DataFrame:
-        if (
-            Path(self.file_name_or_path).exists()
-            or self.file_type == "huggingface"
-        ):
+        if Path(self.file_name_or_path).exists() or self.file_type == "huggingface":
             logging.info("Loading data from %s", self.file_name_or_path)
             match self.file_type:
                 case "csv":
@@ -46,9 +43,7 @@ class Data_loader:
                 case "xlsx":
                     loaded_data = pd.read_excel(self.file_name_or_path)
                 case "jsonl":
-                    loaded_data = pd.read_json(
-                        self.file_name_or_path, lines=True
-                    )
+                    loaded_data = pd.read_json(self.file_name_or_path, lines=True)
                 case "json":
                     loaded_data = pd.read_json(self.file_name_or_path)
                 case "huggingface":
@@ -72,9 +67,7 @@ class Data_loader:
         if max_count is not None and loaded_data is not None:
             loaded_data = loaded_data.head(max_count)
         else:
-            logging.info(
-                "Max count is None and all the records will be loaded"
-            )
+            logging.info("Max count is None and all the records will be loaded")
         loaded_data.rename(
             columns={
                 self.question_column: "question",
@@ -85,9 +78,7 @@ class Data_loader:
         if return_type == "pandas":
             result = loaded_data
         elif return_type == "list":
-            result = loaded_data[["question", "answer"]].to_dict(
-                orient="records"
-            )
+            result = loaded_data[["question", "answer"]].to_dict(orient="records")
         else:
             logging.error("Invalid return type")
         return result
