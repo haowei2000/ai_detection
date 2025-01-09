@@ -1,12 +1,16 @@
 import math
 
 import spacy
+import test
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from datasets import load_dataset,Dataset
-from transformers import (BertForSequenceClassification, BertTokenizer,
-                          PreTrainedTokenizer)
+from datasets import load_dataset, Dataset
+from transformers import (
+    BertForSequenceClassification,
+    BertTokenizer,
+    PreTrainedTokenizer,
+)
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 
@@ -77,6 +81,29 @@ class FeatureFusionBertTokenizer:
         ]
         encoding["features"] = features
         return encoding
+
+    def batch_encode_plus(self, batch_text: list[str], **kwargs):
+        """
+        批量编码函数
+        :param batch_text: 输入文本列表
+        """
+        batch_encoding = self.semantic_tokenizer.batch_encode_plus(
+            batch_text, **kwargs
+        )
+        batch_pos = torch.cat(
+            [self.pos_feature(text) for text in batch_text], dim=0
+        )
+        batch_sentiments = torch.cat(
+            [
+                self.analyze_word_level_sentiment(
+                    text, max_length=self.sentiment_max_length
+                )
+                for text in batch_text
+            ],
+            dim=0,
+        )
+        batch_encoding["features"] = [batch_pos, batch_sentiments]
+        return batch_encoding
 
 
 class CrossAttentionFeatureFusion(nn.Module):
@@ -177,8 +204,8 @@ if __name__ == "__main__":
         semantic_tokenzier, sentiment_max_length=20
     )
 
-    def tokenzier_funtion(examples:Dataset):
-        featuress_input_ids =tokenizer(
+    def tokenzier_funtion(examples: Dataset):
+        featuress_input_ids = tokenizer(
             examples["text"],
             padding=True,
             truncation=True,
@@ -190,6 +217,15 @@ if __name__ == "__main__":
         return examples
 
     # train_tokenizerd = train_dataset.map(tokenzier_funtion)
-    test_input = test_input.map(tokenzier_funtion)
-    print(test_input["features"])
-    print(test_input["input_ids"])
+    tokenized_input = tokenizer.batch_encode_plus(
+        test_input["text"],
+        padding=True,
+        truncation=True,
+        max_length=512,
+        return_tensors="pt",
+    )
+    tokenized_input["label"] = test_input["label"]
+    print(tokenized_input["input_ids"].shape)
+    for feature in tokenized_input["features"]:
+        print(feature.shape)
+    print(model(tokenized_input["features"], tokenized_input["input_ids"]))
