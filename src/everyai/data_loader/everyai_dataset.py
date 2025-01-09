@@ -24,9 +24,7 @@ class EveryaiDataset:
         if datas is not None:
             self.datas: pd.DataFrame = datas
         else:
-            self.datas: pd.DataFrame = pd.DataFrame(
-                columns=["question", "human"]
-            )
+            self.datas: pd.DataFrame = pd.DataFrame(columns=["question", "human"])
         if ai_list is not None:
             for ai_name in ai_list:
                 self.datas[ai_name] = None
@@ -71,17 +69,13 @@ class EveryaiDataset:
         if question_exists:
             self._update_new_row(question, ai_name, ai_response)
         else:
-            self.datas.loc[self.datas["question"] == question, ai_name] = (
-                ai_response
-            )
+            self.datas.loc[self.datas["question"] == question, ai_name] = ai_response
 
     def insert_human_response(self, question, human_response: str):
         if self.datas[self.datas["question"] == question].empty:
             self._update_new_row(question, "human", human_response)
         else:
-            self.datas.loc[self.datas["question"] == question, "human"] = (
-                human_response
-            )
+            self.datas.loc[self.datas["question"] == question, "human"] = human_response
 
     def _update_new_row(self, question, arg1, arg2):
         logging.info("Inserting new question: %s", question)
@@ -109,15 +103,15 @@ class EveryaiDataset:
                 if col != "question":
                     update["$set"][col] = row[col]
 
-            bulk_operations.append({
-                "updateOne": {
-                    "filter": query,
-                    "update": update,
-                    "upsert": True
-                }
-            })
+            bulk_operations.append(
+                {"updateOne": {"filter": query, "update": update, "upsert": True}}
+            )
         result = collection.bulk_write(bulk_operations)
-        logging.info("update %d records and insert %d records ", result.matched_count, result.upserted_count)
+        logging.info(
+            "update %d records and insert %d records ",
+            result.matched_count,
+            result.upserted_count,
+        )
 
     def _load_from_mongodb(self, database: pymongo.database.Database):
         logging.info("Loading dataset from mongodb: %s", database)
@@ -129,9 +123,7 @@ class EveryaiDataset:
         data = data.drop(columns=["timestamp"])
         self.datas = data
 
-    def load(
-        self, path_or_database: str | Path = None, file_format: str = "csv"
-    ):
+    def load(self, path_or_database: str | Path = None, file_format: str = "csv"):
         if file_format == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
@@ -140,17 +132,13 @@ class EveryaiDataset:
             self._load_from_mongodb(path_or_database)
         else:
             if path_or_database is None:
-                path_or_database = (
-                    DATA_PATH / f"{self.data_name}.{file_format}"
-                )
+                path_or_database = DATA_PATH / f"{self.data_name}.{file_format}"
             logging.info("Load dataset from %s", path_or_database)
             if isinstance(path_or_database, str):
                 path_or_database = Path(path_or_database)
             if path_or_database.suffix != f".{file_format}":
                 logging.warning("Change file format to %s", file_format)
-                path_or_database = path_or_database.with_suffix(
-                    f".{file_format}"
-                )
+                path_or_database = path_or_database.with_suffix(f".{file_format}")
             match path_or_database.suffix:
                 case ".csv":
                     self.datas = pd.read_csv(path_or_database)
@@ -165,9 +153,7 @@ class EveryaiDataset:
                 set(self.datas.columns) - {"question", "human", "timestamp"}
             )
 
-    def save(
-        self, path_or_database: str | Path = None, file_format: str = "csv"
-    ):
+    def save(self, path_or_database: str | Path = None, file_format: str = "csv"):
         if file_format == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
@@ -180,9 +166,7 @@ class EveryaiDataset:
                 path_or_database = Path(path_or_database)
             if path_or_database.suffix != f".{file_format}":
                 logging.warning("Change file format to %s", file_format)
-                path_or_database = path_or_database.with_suffix(
-                    f".{file_format}"
-                )
+                path_or_database = path_or_database.with_suffix(f".{file_format}")
             match path_or_database.suffix:
                 case ".csv":
                     self.datas.to_csv(path_or_database, index=False)

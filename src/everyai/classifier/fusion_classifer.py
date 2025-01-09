@@ -11,10 +11,8 @@ from transformers import (
 )
 
 from everyai.classifier.classify import TextClassifer, label_encode, split_data
+from everyai.classifier.multi_feature_model.fusionBert import FeatureFusionBertClassfier
 from everyai.utils.everyai_path import MODEL_PATH
-from everyai.classifier.multi_feature_model.fusionBert import (
-    FeatureFusionBertClassfier,
-)
 
 
 class HuggingfaceClassifer(TextClassifer):
@@ -32,7 +30,7 @@ class HuggingfaceClassifer(TextClassifer):
         fusion_model_dict = {
             "FeatureFusionBertClassfier": FeatureFusionBertClassfier(),
         }
-        
+
         self.model = fusion_model_dict[self.model_name]
         if "bert" in self.model_name.lower():
             self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
@@ -47,9 +45,7 @@ class HuggingfaceClassifer(TextClassifer):
     def _tokenize(self, texts: list[str], labels: list[str]):
         self.label_encoder, tokenzied_labels = label_encode(labels)
         tokenzied_labels = torch.tensor(tokenzied_labels)
-        dataset = datasets.Dataset.from_dict(
-            {"text": texts, "label": tokenzied_labels}
-        )
+        dataset = datasets.Dataset.from_dict({"text": texts, "label": tokenzied_labels})
 
         def _tokenizer_fn(example):
             return self.tokenizer(example["text"], **self.tokenizer_config)
@@ -73,12 +69,8 @@ class HuggingfaceClassifer(TextClassifer):
             self.data.valid_indices,
             self.data.test_indices,
         ) = split_data(self.texts, self.labels)
-        self.train_dataset = self._tokenize(
-            self.data.x_train, self.data.y_train
-        )
-        self.valid_dataset = self._tokenize(
-            self.data.x_valid, self.data.y_valid
-        )
+        self.train_dataset = self._tokenize(self.data.x_train, self.data.y_train)
+        self.valid_dataset = self._tokenize(self.data.x_valid, self.data.y_valid)
         self.test_dataset = self._tokenize(self.data.x_test, self.data.y_test)
         train_args = TrainingArguments(**self.train_args)
         data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
@@ -94,15 +86,11 @@ class HuggingfaceClassifer(TextClassifer):
     def test(self):
         trainer = Trainer(model=self.model)
         predictions = trainer.predict(self.test_dataset)
-        self.data.y_pred = torch.argmax(
-            torch.tensor(predictions.predictions), axis=1
-        )
+        self.data.y_pred = torch.argmax(torch.tensor(predictions.predictions), axis=1)
 
         self.data.y_test = self.label_encoder.transform(self.data.y_test)
 
     def show_score(self):
         metric = evaluate.load("accuracy")
-        metric.compute(
-            predictions=self.data.y_pred, references=self.data.y_test
-        )
+        metric.compute(predictions=self.data.y_pred, references=self.data.y_test)
         logging.info("Accuracy: %s", metric)

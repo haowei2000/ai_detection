@@ -5,7 +5,8 @@ import os
 from pymongo import MongoClient
 
 
-def get_mongo_connection(connection_string:str, database_name:str):# -> Database:
+# -> Database:
+def get_mongo_connection(connection_string: str, database_name: str):
     if connection_string is None or not connection_string:
         logging.info("Use the connection string in environment variable")
         connection_string = os.getenv("MONGO_CONNECTION_STRING")

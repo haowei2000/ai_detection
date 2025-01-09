@@ -10,9 +10,16 @@ from sklearn.discriminant_analysis import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (accuracy_score, auc, confusion_matrix, f1_score,
-                             precision_recall_curve, precision_score,
-                             recall_score, roc_curve)
+from sklearn.metrics import (
+    accuracy_score,
+    auc,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_curve,
+)
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import make_pipeline
@@ -141,9 +148,7 @@ def _init_sklearn_pipeline(pipeline_config: list[dict]):
             step_params = pipeline_config[step_name]
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
-            logging.warning(
-                "Step %s not recognized and will be skipped", step_name
-            )
+            logging.warning("Step %s not recognized and will be skipped", step_name)
     return make_pipeline(*[step[1] for step in steps])
 
 
@@ -234,7 +239,11 @@ class SklearnClassifer(TextClassifer):
         return self.model.predict(x)
 
     def show_score(self):
-        output_path = RESULT_PATH/ "classfiy_result"/ f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        output_path = (
+            RESULT_PATH
+            / "classfiy_result"
+            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        )
         self.score = evaluate_classification_model(
             self.data.y_test,
             self.data.y_pred,
