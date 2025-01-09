@@ -1,11 +1,11 @@
 import math
+import test
 
 import spacy
-import test
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from datasets import load_dataset, Dataset
+from datasets import Dataset, load_dataset
 from transformers import (
     BertForSequenceClassification,
     BertTokenizer,
@@ -30,9 +30,7 @@ class FeatureFusionBertTokenizer:
         self.all_tags = self.nlp.get_pipe("tagger").labels
         self.sentiment_analyzer = SentimentIntensityAnalyzer()
 
-    def analyze_word_level_sentiment(
-        self, text: str, max_length=512
-    ) -> torch.tensor:
+    def analyze_word_level_sentiment(self, text: str, max_length=512) -> torch.tensor:
         # 使用SpaCy进行词汇级分析
         doc = self.nlp(text)
 
@@ -42,9 +40,9 @@ class FeatureFusionBertTokenizer:
             if token.is_stop or token.is_punct:
                 sentiment = 0.0
             else:
-                sentiment = self.sentiment_analyzer.polarity_scores(
-                    token.text
-                )["compound"]
+                sentiment = self.sentiment_analyzer.polarity_scores(token.text)[
+                    "compound"
+                ]
             word_sentiment.append(sentiment)
         sentiment = torch.tensor(word_sentiment, dtype=torch.float)
         sentiment = truncate_and_pad_single_sequence(sentiment, max_length)
@@ -87,12 +85,8 @@ class FeatureFusionBertTokenizer:
         批量编码函数
         :param batch_text: 输入文本列表
         """
-        batch_encoding = self.semantic_tokenizer.batch_encode_plus(
-            batch_text, **kwargs
-        )
-        batch_pos = torch.cat(
-            [self.pos_feature(text) for text in batch_text], dim=0
-        )
+        batch_encoding = self.semantic_tokenizer.batch_encode_plus(batch_text, **kwargs)
+        batch_pos = torch.cat([self.pos_feature(text) for text in batch_text], dim=0)
         batch_sentiments = torch.cat(
             [
                 self.analyze_word_level_sentiment(
@@ -143,9 +137,7 @@ class CrossAttentionFeatureFusion(nn.Module):
         outputs = []
         for i in range(self.feature_num):
             if len(self.projections) <= i:
-                self.projections.append(
-                    nn.Linear(features[i].size(-1), self.proj_dim)
-                )
+                self.projections.append(nn.Linear(features[i].size(-1), self.proj_dim))
                 projected_features.append(self.projections[i](features[i]))
 
         for i in range(self.feature_num):
@@ -160,9 +152,7 @@ class CrossAttentionFeatureFusion(nn.Module):
 
 
 class FeatureFusionBertClassfier(nn.Module):
-    def __init__(
-        self, feature_num=3, proj_dim=64, bert_input_dim=768, num_labels=2
-    ):
+    def __init__(self, feature_num=3, proj_dim=64, bert_input_dim=768, num_labels=2):
         super(FeatureFusionBertClassfier, self).__init__()
         bert_classifier = BertForSequenceClassification.from_pretrained(
             "bert-base-uncased", num_labels=num_labels
