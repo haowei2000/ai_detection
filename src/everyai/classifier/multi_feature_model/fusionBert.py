@@ -1,15 +1,18 @@
 import math
+import token
 
 import spacy
-import test
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from datasets import load_dataset, Dataset
+from datasets import Dataset, load_dataset
+from torch.utils.data import DataLoader
 from transformers import (
+    AdamW,
     BertForSequenceClassification,
     BertTokenizer,
     PreTrainedTokenizer,
+    get_scheduler,
 )
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
@@ -204,18 +207,6 @@ if __name__ == "__main__":
         semantic_tokenzier, sentiment_max_length=20
     )
 
-    def tokenzier_funtion(examples: Dataset):
-        featuress_input_ids = tokenizer(
-            examples["text"],
-            padding=True,
-            truncation=True,
-            max_length=512,
-            return_tensors="pt",
-        )
-        examples["features"] = featuress_input_ids["features"]
-        examples["input_ids"] = featuress_input_ids["input_ids"]
-        return examples
-
     # train_tokenizerd = train_dataset.map(tokenzier_funtion)
     tokenized_input = tokenizer.batch_encode_plus(
         test_input["text"],
@@ -229,3 +220,33 @@ if __name__ == "__main__":
     for feature in tokenized_input["features"]:
         print(feature.shape)
     print(model(tokenized_input["features"], tokenized_input["input_ids"]))
+    train_dataset_tokenized = tokenizer.batch_encode_plus(
+        train_dataset["text"],
+        padding=True,
+        truncation=True,
+        max_length=512,
+        return_tensors="pt",
+    )
+    train_dataset_tokenized["label"] = train_dataset["label"]
+    train_dataloader = DataLoader(train_dataset_tokenized, shuffle=True, batch_size=8)
+    optimizer = AdamW(model.parameters(), lr=5e-5)
+    num_epochs = 3
+    num_training_steps = num_epochs * len(train_dataloader)
+    lr_scheduler = get_scheduler(
+        name="linear",
+        optimizer=optimizer,
+        num_warmup_steps=0,
+        num_training_steps=num_training_steps,
+    )
+    # TODO Fix error: KeyError: 'Invalid key. Only three types of key are available: 
+    # (1) string, (2) integers for backend Encoding, and (3) slices for data subsetting.'
+    model.train()
+    for epoch in range(num_epochs):
+        for batch in train_dataloader:
+            optimizer.zero_grad()
+            outputs = model(batch["features"], batch["input_ids"])
+            loss = F.cross_entropy(outputs, batch["label"])
+            loss.backward()
+            optimizer.step()
+            lr_scheduler.step()
+        print(f"Epoch {epoch + 1} completed with loss: {loss.item()}")

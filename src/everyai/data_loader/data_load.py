@@ -52,9 +52,9 @@ class Data_loader:
                 case "json":
                     loaded_data = pd.read_json(self.file_name_or_path)
                 case "huggingface":
-                    loaded_data = load_dataset(path=self.file_name_or_path)[
-                        "train"
-                    ].to_pandas()
+                    loaded_data = load_dataset(
+                        self.file_name_or_path
+                    ).to_pandas()
                 case _:
                     logging.error("Invalid file format")
         elif Path(self.file_name_or_path).exists():

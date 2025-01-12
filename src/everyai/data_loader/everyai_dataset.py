@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import re
 
 import pandas as pd
 import pymongo
@@ -47,7 +48,16 @@ class EveryaiDataset:
         self.datas[ai_name] = None
         logging.info("Add model: %s", ai_name)
 
-    def get_records_with_ai(self, ai_list: list[str] = None, only2class=False):
+    def get_records(self, ai_list: list[str] = None, only2class=False):
+        """
+        Get records
+        Args:
+            ai_list (list[str], optional): List of AI names. Defaults to None.
+            only2class (bool, optional): Only 2 classes. Defaults to False. If
+                set to True, the labels will be "human" and "ai" (all ai_response are
+                added to "ai" label, elif set to False, all ai_response are set the
+                generate-model-name).
+        """
         texts = []
         labels = []
         if ai_list is None:
@@ -56,7 +66,7 @@ class EveryaiDataset:
         labels.extend(["human"] * len(self.datas["human"]))
         for ai_name in ai_list:
             if only2class:
-                labels.extend("ai" * len(self.datas[ai_name]))
+                labels.extend(["ai"] * len(self.datas[ai_name]))
             else:
                 labels.extend([ai_name] * len(self.datas[ai_name]))
             texts.extend(self.datas[ai_name])
@@ -67,7 +77,10 @@ class EveryaiDataset:
             self.add_ai(ai_name)
         else:
             logging.info("AI %s exists in the dataset", ai_name)
-        question_exists = self.datas[self.datas["question"] == question].empty
+        question_exists = not self.datas[
+            (self.datas["question"] == question)
+            & (self.datas[ai_name] == ai_name)
+        ].empty
         if question_exists:
             self._update_new_row(question, ai_name, ai_response)
         else:
@@ -91,7 +104,9 @@ class EveryaiDataset:
     def output_question(self):  # -> Iterator:
         return iter(self.datas["question"])
 
-    def _save2mongodb(self, database: pymongo.database.Database):
+    def _save2mongodb(
+        self, database: pymongo.database.Database, insert_mode="insert"
+    ):
         logging.info("Saving dataset to mongodb: %s", database)
         collection = database[self.data_name]
         if "timestamp" not in self.datas.columns:
@@ -100,36 +115,27 @@ class EveryaiDataset:
             self.datas.loc[self.datas["timestamp"].isnull(), "timestamp"] = (
                 pd.Timestamp.now()
             )
-        # 构建批量操作列表
-        bulk_operations = []
-        for _, row in self.datas.iterrows():
-            query = {"question": row["question"]}
-            update = {"$set": {}}
-            for col in self.datas.columns:
-                if col != "question":
-                    update["$set"][col] = row[col]
+        if insert_mode == "insert":
+            collection.insert_many(documents=self.datas.to_dict("records"))
+            logging.info("Dataset inserted to mongodb: %s", database)
+        elif insert_mode == "upsert":
+            for _, row in self.datas.iterrows():
+                query = {"question": row["question"]}
+                update = {"$set": row.to_dict()}
+                collection.update_one(query, update, upsert=True)
+            logging.info("Dataset upserted to mongodb: %s", database)
 
-            bulk_operations.append({
-                "updateOne": {
-                    "filter": query,
-                    "update": update,
-                    "upsert": True
-                }
-            })
-        result = collection.bulk_write(bulk_operations)
-        logging.info("update %d records and insert %d records ", result.matched_count, result.upserted_count)
-
-    def _load_from_mongodb(self, database: pymongo.database.Database):
+    def _read_from_mongodb(self, database: pymongo.database.Database):
         logging.info("Loading dataset from mongodb: %s", database)
         collection = database[self.data_name]
         data = pd.DataFrame(list(collection.find()))
-        data = data.drop(columns=["_id"], errors="ignore")
+        data = data.drop(columns=["_id","answer"], errors="ignore")
         data = data.sort_values(by="timestamp", ascending=False)
         data = data.drop_duplicates(subset=["question"], keep="first")
         data = data.drop(columns=["timestamp"])
-        self.datas = data
+        return data
 
-    def load(
+    def read(
         self, path_or_database: str | Path = None, file_format: str = "csv"
     ):
         if file_format == "mongodb":
@@ -137,7 +143,7 @@ class EveryaiDataset:
                 path_or_database = self._initialize_mongo_connection()
             else:
                 logging.info("Load dataset from %s", path_or_database)
-            self._load_from_mongodb(path_or_database)
+            loaded_data = self._read_from_mongodb(path_or_database)
         else:
             if path_or_database is None:
                 path_or_database = (
@@ -153,17 +159,27 @@ class EveryaiDataset:
                 )
             match path_or_database.suffix:
                 case ".csv":
-                    self.datas = pd.read_csv(path_or_database)
+                    loaded_data = pd.read_csv(path_or_database)
                 case ".xlsx":
-                    self.datas = pd.read_excel(path_or_database)
+                    loaded_data = pd.read_excel(path_or_database)
                 case ".json":
-                    self.datas = pd.read_json(path_or_database)
+                    loaded_data = pd.read_json(path_or_database)
                 case _:
                     logging.error("Invalid format: %s", file_format)
-        if self.datas is not None:
-            self.ai_list = list(
-                set(self.datas.columns) - {"question", "human", "timestamp"}
-            )
+        if self.datas.empty:
+            self.datas = loaded_data
+        else:
+            self.datas = pd.merge(
+                    self.datas,              
+                    loaded_data,
+                    on="question", 
+                    how="outer",
+                    suffixes=("", "_new")
+                )
+        self.datas.dropna(inplace=True)
+        self.ai_list = list(
+            set(self.datas.columns) - {"question", "human"}
+        )
 
     def save(
         self, path_or_database: str | Path = None, file_format: str = "csv"
@@ -174,7 +190,9 @@ class EveryaiDataset:
             self._save2mongodb(path_or_database)
         else:
             if path_or_database is None:
-                path_or_database = f"{self.data_name}.{file_format}"
+                path_or_database = (
+                    DATA_PATH / f"{self.data_name}.{file_format}"
+                )
             logging.info("Save dataset to %s", path_or_database)
             if isinstance(path_or_database, str):
                 path_or_database = Path(path_or_database)

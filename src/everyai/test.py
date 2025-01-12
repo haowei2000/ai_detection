@@ -1,23 +1,15 @@
-from datasets import Dataset
-from transformers import BertTokenizer
-import torch
+import pandas as pd
+from sympy import Min
+from everyai.data_loader.mongo_connection import get_mongo_connection
 
-# Sample dataset
-data = {"text": ["Hello, world!", "How are you?"]}
-dataset = Dataset.from_dict(data)
 
-# Initialize tokenizer
-tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
-# Function to tokenize the text and convert to torch tensors
-def tokenize_function(examples):
-    # Tokenize the text
-    encoding = tokenizer(examples["text"], padding=True, truncation=True, return_tensors="pt")
-    # Convert to pytorch tensors (they will already be tensors if using return_tensors="pt")
-    return {key: torch.tensor(value) for key, value in encoding.items()}
-
-# Apply the function with batched=True to process a batch at a time
-tokenized_dataset = dataset.map(tokenize_function, batched=True)
-
-# Check the result
-print(tokenized_dataset['input_ids'])
+if __name__ == "__main__":
+    database = get_mongo_connection(None, "everyai")
+    collection = database["reddit_finance_43_250k"]
+    # Load data from MongoDB collection into a DataFrame
+    data = pd.DataFrame(list(collection.find()))
+    print(data["question"].nunique())
+    result = data.groupby("question",as_index=False).last()
+    print(result.shape)
+    result.to_csv("output.csv", index=False)

@@ -7,8 +7,8 @@ data_list:
 #   max_count: 200
 #   language: Chinese
 - data_type: huggingface
-  data_name: reddit_finance_43_250k
-  file_path: winddude/reddit_finance_43_250k
+  data_name: qa_legal_dataset_val
+  file_path: ibunescu/qa_legal_dataset_val
   question_column: title
   answer_column: body
   max_count: 5000

@@ -37089,25 +37089,25 @@
 /***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map </script></head><body>
-        <div class="lime top_div" id="top_div6NK2Z5BYRWABF19"></div>
+        <div class="lime top_div" id="top_divML179AND81AFI6S"></div>
         
         <script>
-        var top_div = d3.select('#top_div6NK2Z5BYRWABF19').classed('lime top_div', true);
+        var top_div = d3.select('#top_divML179AND81AFI6S').classed('lime top_div', true);
         
             var pp_div = top_div.append('div')
                                 .classed('lime predict_proba', true);
             var pp_svg = pp_div.append('svg').style('width', '100%');
-            var pp = new lime.PredictProba(pp_svg, ["THUDM/glm-4-9b-chat-hf", "human"], [0.74, 0.26]);
+            var pp = new lime.PredictProba(pp_svg, ["ai", "human"], [0.98, 0.02]);
             
         
         var exp_div;
-            var exp = new lime.Explanation(["THUDM/glm-4-9b-chat-hf", "human"]);
+            var exp = new lime.Explanation(["ai", "human"]);
         
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["heres", -0.18566300357101834], ["breakdown", -0.10781974292219994], ["the", -0.09923012769846924], ["years", 0.07743860768979692], ["statement", -0.07726009406651886], ["referring", -0.05952475114458773]], 1, exp_div);
+                exp.show([["financial", -0.03955821360594939], ["provide", -0.03416051622642635], ["factors", -0.02876027509041271], ["market", -0.02330385629537084], ["goa", -0.023244875626015245], ["room", 0.017319113010261553]], 1, exp_div);
                 
         var raw_div = top_div.append('div');
-            exp.show_raw_text([["heres", 77, -0.18566300357101834], ["breakdown", 83, -0.10781974292219994], ["the", 0, -0.09923012769846924], ["years", 65, 0.07743860768979692], ["years", 205, 0.07743860768979692], ["statement", 4, -0.07726009406651886], ["statement", 93, -0.07726009406651886], ["referring", 30, -0.05952475114458773]], 1, "the statement reached  100000 referring exceeding 100000 reached years time\n\nheres breakdown statement\n\n reached threshold achieved\n  100000 specifies reached 100000\n stands year indicating reached 100000 years time", raw_div, true);
+            exp.show_raw_text([["financial", 377, -0.03955821360594939], ["financial", 403, -0.03955821360594939], ["provide", 16, -0.03416051622642635], ["factors", 91, -0.02876027509041271], ["factors", 189, -0.02876027509041271], ["market", 49, -0.02330385629537084], ["market", 145, -0.02330385629537084], ["market", 317, -0.02330385629537084], ["goa", 12, -0.023244875626015245], ["goa", 129, -0.023244875626015245], ["goa", 185, -0.023244875626015245], ["goa", 292, -0.023244875626015245], ["room", 334, 0.017319113010261553]], 1, "vacationing goa provide unique perspective local market potential investment opportunities factors evaluating car rental company goa investment1 market demand assess demand car rentals goa factors tourist seasonality local business potential growth2 competition analyze competitive landscape goa determine car rental market saturated room players expansion existing companies3 financial health evaluate financial health car rental company revenue", raw_div, true);
             
         </script>
         </body></html>

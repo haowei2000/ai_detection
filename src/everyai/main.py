@@ -78,7 +78,7 @@ def topic():
             dataname=data_config["data_name"],
             language=data_config["language"],
         )
-        everyai_dataset.load(file_format="csv")
+        everyai_dataset.read(file_format="mongodb")
         logging.info("Loaded data: %s", everyai_dataset.data_name)
         topic_config = get_config(file_path=BERT_TOPIC_CONFIG_PATH)
         for catogeory in everyai_dataset.ai_list + ["human"]:
@@ -100,7 +100,7 @@ def topic():
 
 
 def classify():
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(level=logging.INFO)
     data_list_configs = get_config(file_path=DATA_LOAD_CONFIG_PATH)
     logging.info("Data config: %s", data_list_configs)
     for data_config in data_list_configs["data_list"]:
@@ -108,8 +108,9 @@ def classify():
             dataname=data_config["data_name"],
             language=data_config["language"],
         )
-        everyai_dataset.load(file_format="mongodb")
-        texts, labels = everyai_dataset.get_records_with_ai()
+        everyai_dataset.read(file_format="mongodb")
+        texts, labels = everyai_dataset.get_records(only2class=True)
+        print(texts)
         logging.info("Label: %s", set(labels))
         for classify_config in get_config(file_path=CLASSIFY_CONFIG_PATH)[
             "classifier_list"

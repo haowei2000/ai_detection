@@ -72,13 +72,10 @@ def remove_stopwords(text: str, lang="both", stopwords: str | Path | set | list 
         match lang.lower():
             case ["en", "english"]:
                 stopwords = en_stopwords
-                logging.info("Using English stopwords")
             case ["zh", "chinese"]:
                 stopwords = zh_stopwords
-                logging.info("Using Chinese stopwords")
             case _:
                 stopwords = en_stopwords.union(zh_stopwords)
-                logging.info("Using both English and Chinese stopwords")
     words = text.split(" ")
     words = [word for word in words if word not in stopwords]
     return " ".join(words)
@@ -94,7 +91,6 @@ def chinese_split(text) -> str:
     Returns:
         text: string of Chinese words with 1 space split
     """
-    logging.info("Splitting Chinese text into words")
     return " ".join(jieba.lcut(text))
 
 
@@ -117,5 +113,6 @@ def split_remove_stopwords_punctuation(text: str, language="both") -> str:
         text = text.lower()
     text = remove_punctuation(text)
     text = remove_stopwords(text, lang=language)
+    text = text.replace("\n", "")
     text = text.strip()
     return text
