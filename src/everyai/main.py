@@ -12,10 +12,14 @@ from everyai.data_loader.everyai_dataset import EveryaiDataset
 from everyai.explanation.explain import LimeExplanation, ShapExplanation
 from everyai.generator.generate import Generator
 from everyai.topic.my_bertopic import create_topic
-from everyai.utils.everyai_path import (BERT_TOPIC_CONFIG_PATH,
-                                        CLASSIFY_CONFIG_PATH,
-                                        DATA_LOAD_CONFIG_PATH, DATA_PATH,
-                                        FIG_PATH, GENERATE_CONFIG_PATH)
+from everyai.utils.everyai_path import (
+    BERT_TOPIC_CONFIG_PATH,
+    CLASSIFY_CONFIG_PATH,
+    DATA_LOAD_CONFIG_PATH,
+    DATA_PATH,
+    FIG_PATH,
+    GENERATE_CONFIG_PATH,
+)
 from everyai.utils.load_config import get_config
 
 
@@ -45,9 +49,7 @@ def generate():
         for generate_config in generate_list_configs["generate_list"]:
             logging.info("Generate config: %s", generate_config)
             generator = Generator(config=generate_config)
-            for data in tqdm(
-                qa_datas, desc="Generating data", total=len(qa_datas)
-            ):
+            for data in tqdm(qa_datas, desc="Generating data", total=len(qa_datas)):
                 if everyai_dataset.record_exist(
                     data["question"], generate_config["model_name"]
                 ):
@@ -131,9 +133,7 @@ def classify():
                         **classify_config,
                     )
                 case "huggingface":
-                    text_classifier = HuggingfaceClassifer(
-                        **classify_config
-                    )
+                    text_classifier = HuggingfaceClassifer(**classify_config)
                 case _:
                     raise ValueError("Classifier type not supported")
             text_classifier.load_data(

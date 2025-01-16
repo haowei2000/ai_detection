@@ -36,7 +36,9 @@ class LimeExplanation(Explanation):
                 exp.save_to_file(output_path / f"text{i}.html")
             logging.info("Lime explanation saved to %s", output_path)
         else:
-            logging.error("Lime explanation not supported for %s", self.classifier.classifier_type)
+            logging.error(
+                "Lime explanation not supported for %s", self.classifier.classifier_type
+            )
 
 
 class ShapExplanation(Explanation):
@@ -57,4 +59,6 @@ class ShapExplanation(Explanation):
                 shap.plots.text(shap_values, output_path / f"text{i}")
             logging.info("Shap explanation saved to %s", output_path)
         else:
-            logging.error("Shap explanation not supported for %s", self.classifier.classifier_type)
+            logging.error(
+                "Shap explanation not supported for %s", self.classifier.classifier_type
+            )

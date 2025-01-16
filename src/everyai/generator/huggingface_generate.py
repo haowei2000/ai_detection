@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import transformers
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def glm4(
