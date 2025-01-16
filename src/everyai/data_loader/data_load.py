@@ -54,7 +54,13 @@ class Data_loader:
                 case "huggingface":
                     loaded_data = load_dataset(
                         self.file_name_or_path
-                    ).to_pandas()
+                    )
+                    if "train" in loaded_data.keys():
+                        loaded_data = loaded_data["train"].to_pandas()
+                    elif "validation" in loaded_data.keys():
+                        loaded_data = loaded_data["validation"].to_pandas()
+                    else:
+                        raise ValueError("Invalid dataset")
                 case _:
                     logging.error("Invalid file format")
         elif Path(self.file_name_or_path).exists():

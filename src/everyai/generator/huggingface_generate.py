@@ -1,7 +1,9 @@
 import logging
 from pathlib import Path
 
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+import transformers
 
 
 def glm4(
@@ -87,3 +89,39 @@ def qwen2_5(
         tokenizer,
         tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0],
     )
+
+
+def llama(
+    user_input: str,
+    model_path_or_name: str | Path = None,
+    gen_kwargs: dict = None,
+    tokenizer=None,
+    model=None,
+):
+    if model is None:
+        model = AutoModelForCausalLM.from_pretrained(  # type: ignore
+            model_path_or_name, device_map="auto"
+        )
+    if tokenizer is None:
+        tokenizer = AutoTokenizer.from_pretrained(model_path_or_name)
+    pipeline = transformers.pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        device_map="auto",
+    )
+
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a chatbot assistant.",
+        },
+        {"role": "user", "content": user_input},
+    ]
+
+    outputs = pipeline(
+        messages,
+        **gen_kwargs,
+    )
+    response = outputs[0]["generated_text"][-1]
+    return (model, tokenizer, response)

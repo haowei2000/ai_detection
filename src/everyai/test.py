@@ -1,5 +1,4 @@
 import pandas as pd
-from sympy import Min
 from everyai.data_loader.mongo_connection import get_mongo_connection
 
 

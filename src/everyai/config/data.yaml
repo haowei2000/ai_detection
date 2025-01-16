@@ -9,8 +9,8 @@ data_list:
 - data_type: huggingface
   data_name: qa_legal_dataset_val
   file_path: ibunescu/qa_legal_dataset_val
-  question_column: title
-  answer_column: body
+  question_column: Question
+  answer_column: Answer
   max_count: 5000
   language: English
 

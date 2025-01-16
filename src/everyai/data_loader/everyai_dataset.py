@@ -12,6 +12,13 @@ from everyai.utils.everyai_path import DATA_PATH, MONGO_CONFIG_PATH
 from everyai.utils.load_config import get_config
 
 
+def _initialize_mongo_connection():
+    mongodb_config = get_config(MONGO_CONFIG_PATH)
+    result = get_mongo_connection(**mongodb_config)
+    logging.info("Use default mongodb: %s", result)
+    return result
+
+
 class EveryaiDataset:
     def __init__(
         self,
@@ -36,6 +43,8 @@ class EveryaiDataset:
         self.language: str = language
         self.max_length: int = 0
         self.min_length: int = 0
+        self.mongodb = _initialize_mongo_connection()
+        self.mongo_collection = self.mongodb[self.data_name]
 
     def data_process(self):
         for col in ["question", "human"] + self.ai_list:
@@ -96,6 +105,21 @@ class EveryaiDataset:
                 human_response
             )
 
+    def record_exist(
+        self, question: str, label: str, file_type: str = "mongodb"
+    ):
+        if file_type != "mongodb":
+            raise ValueError("Unsupported file type: %s", file_type)
+        query = {"question": question, label: {"$exists": True}}
+        record = self.mongo_collection.find_one(query)
+        return False if record is None else isinstance(record[label], str)
+    
+
+    def upsert2mongo(self, question: str, label: str, answer: str):
+        query = {"question": question}
+        update = {"$set": {label: answer, "timestamp": pd.Timestamp.now()}}
+        self.mongo_collection.update_one(query, update, upsert=True)
+
     def _update_new_row(self, question, arg1, arg2):
         logging.info("Inserting new question: %s", question)
         new_row = pd.DataFrame({"question": [question], arg1: [arg2]})
@@ -107,6 +131,7 @@ class EveryaiDataset:
     def _save2mongodb(
         self, database: pymongo.database.Database, insert_mode="insert"
     ):
+        self.datas = self.datas.dropna()
         logging.info("Saving dataset to mongodb: %s", database)
         collection = database[self.data_name]
         if "timestamp" not in self.datas.columns:
@@ -129,7 +154,7 @@ class EveryaiDataset:
         logging.info("Loading dataset from mongodb: %s", database)
         collection = database[self.data_name]
         data = pd.DataFrame(list(collection.find()))
-        data = data.drop(columns=["_id","answer"], errors="ignore")
+        data = data.drop(columns=["_id", "answer"], errors="ignore")
         data = data.sort_values(by="timestamp", ascending=False)
         data = data.drop_duplicates(subset=["question"], keep="first")
         data = data.drop(columns=["timestamp"])
@@ -140,7 +165,7 @@ class EveryaiDataset:
     ):
         if file_format == "mongodb":
             if path_or_database is None:
-                path_or_database = self._initialize_mongo_connection()
+                path_or_database = _initialize_mongo_connection()
             else:
                 logging.info("Load dataset from %s", path_or_database)
             loaded_data = self._read_from_mongodb(path_or_database)
@@ -170,20 +195,19 @@ class EveryaiDataset:
             self.datas = loaded_data
         else:
             self.datas = pd.merge(
-                    self.datas,              
-                    loaded_data,
-                    on="question", 
-                    how="outer",
-                    suffixes=("", "_new")
-                )
+                self.datas,
+                loaded_data,
+                on="question",
+                how="outer",
+                suffixes=("", "_new"),
+            )
         self.datas.dropna(inplace=True)
-        self.ai_list = list(
-            set(self.datas.columns) - {"question", "human"}
-        )
+        self.ai_list = list(set(self.datas.columns) - {"question", "human"})
 
     def save(
         self, path_or_database: str | Path = None, file_format: str = "csv"
     ):
+        self.datas = self.datas.dropna()
         if file_format == "mongodb":
             if path_or_database is None:
                 path_or_database = self._initialize_mongo_connection()
@@ -210,10 +234,3 @@ class EveryaiDataset:
                     self.datas.to_json(path_or_database, orient="records")
                 case _:
                     logging.error("Invalid format: %s", file_format)
-
-    @staticmethod
-    def _initialize_mongo_connection():
-        mongodb_config = get_config(MONGO_CONFIG_PATH)
-        result = get_mongo_connection(**mongodb_config)
-        logging.info("Use default mongodb: %s", result)
-        return result

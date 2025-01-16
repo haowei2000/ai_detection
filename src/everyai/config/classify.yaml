@@ -6,18 +6,18 @@ classifier_list:
     test_size: 0.15
     valid_size: 0.15
   classifier_type: "sklearn"
-    # - model_name: "google-bert/bert-base-uncased"
-    #   tokenizer_name: "google-bert/bert-base-uncased"
-    #   classifier_type: "huggingface"
-    #   split_size:
-    #     train_size: 0.7
-    #     test_size: 0.15
-    #     valid_size: 0.15
-    #   train_args:
-    #     num_train_epochs: 1
-    #     report_to: "wandb"
-    #   tokenizer_config:
-    #     max_length: 512
-    #     padding: "max_length"
-    #     truncation: true
-    #     return_tensors: "pt"
+- model_name: "bert-base-uncased"
+  tokenizer_name: "bert-base-uncased"
+  classifier_type: "huggingface"
+  split_size:
+    train_size: 0.7
+    test_size: 0.15
+    valid_size: 0.15
+  train_args:
+    num_train_epochs: 1
+    report_to: "wandb"
+  tokenizer_config:
+    max_length: 512
+    padding: "max_length"
+    truncation: true
+    return_tensors: "pt"
