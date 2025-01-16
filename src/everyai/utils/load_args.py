@@ -11,7 +11,7 @@ classfiy_allowed_keys = [
 ]
 
 
-def set_attrs_2class(self, classify_config, allowed_keys,necessary_keys):
+def set_attrs_2class(self, classify_config, allowed_keys, necessary_keys):
     for key, value in classify_config.items():
         if key in allowed_keys:
             setattr(self, key, value)
@@ -21,4 +21,3 @@ def set_attrs_2class(self, classify_config, allowed_keys,necessary_keys):
         if key not in classify_config:
             setattr(self, key, None)
             logging.warning("Necessary key not provided: %s", key)
-        
