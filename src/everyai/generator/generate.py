@@ -2,8 +2,8 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
-from everyai.generator.openai_generate import openai_generate
 from everyai.generator.huggingface_generate import glm4, llama, qwen2_5
+from everyai.generator.openai_generate import openai_generate
 from everyai.utils.everyai_path import GENERATE_CONFIG_PATH
 from everyai.utils.load_args import set_attrs_2class
 from everyai.utils.load_config import get_config
@@ -37,9 +37,7 @@ class Generator:
             ]
             default_params = ["model_name", "base_url", "api_key"]
         else:
-            raise ValueError(
-                "Unsupported generator type: %s", self.generator_type
-            )
+            raise ValueError("Unsupported generator type: %s", self.generator_type)
         self.formatter = formatter
         set_attrs_2class(self, config, allowed_keys, default_params)
 

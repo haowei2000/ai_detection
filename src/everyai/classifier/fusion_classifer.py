@@ -6,11 +6,8 @@ from lightning.pytorch.loggers import WandbLogger
 
 from everyai.classifier.classify import TextClassifer, label_encode, split_data
 from everyai.classifier.multi_feature_model.fusionBert import (
-    CrossAttentionFeatureFusion,
-    FeatureFusionBertClassfier,
-    FeatureFusionDataModule,
-    HFeatureFusion,
-)
+    CrossAttentionFeatureFusion, FeatureFusionBertClassfier,
+    FeatureFusionDataModule, HFeatureFusion)
 
 
 class PLClassifer(TextClassifer):
