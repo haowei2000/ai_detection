@@ -9,15 +9,27 @@ data_list:
 - data_type: huggingface
   data_name: qa_legal_dataset_val
   file_path: ibunescu/qa_legal_dataset_val
-  question_column: title
-  answer_column: body
+  question_column: Question
+  answer_column: Answer
   max_count: 5000
   language: English
+  load_config:
+    split: "validation"
+
+# - data_type: huggingface
+#   data_name: medical-question-answering-datasets
+#   file_path: Malikeh1375/medical-question-answering-datasets
+#   load_config:
+#     name: "all-processed"
+#     split: "train"
+#   question_column: input
+#   answer_column: output
+#   max_count: 5000
+#   language: English
 
 # - data_type: csv
-#   data_name: human_ai_comparsion
-#   file_path: "/workspace/project/everyAI/src/everyai/data/human_ai_comparsion.csv"
+#   data_name: mental_health_cyn
+#   file_path: "/workspace/project/everyAI/src/everyai/data/mental_health_cyn.csv"
 #   question_column: question
 #   answer_column: answer
-#   max_count: 200
 #   language: Chinese

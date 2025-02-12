@@ -4,12 +4,13 @@ import datasets
 import evaluate
 import torch
 from transformers import (
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
     DataCollatorWithPadding,
     Trainer,
     TrainingArguments,
+    BertForSequenceClassification,
+    BertTokenizer,
 )
+
 
 from everyai.classifier.classify import TextClassifer, label_encode, split_data
 from everyai.utils.everyai_path import MODEL_PATH
@@ -31,9 +32,13 @@ class HuggingfaceClassifer(TextClassifer):
             language=language,
             **classfiy_config,
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
-        self.model = AutoModelForSequenceClassification.from_pretrained(
+        if self.model_name != "bert-base-uncased":
+            raise ValueError(f"Model name {self.model_name} not supported yet")
+        self.model = BertForSequenceClassification.from_pretrained(
             self.model_name
+        )
+        self.tokenizer = BertTokenizer.from_pretrained(
+            self.tokenizer_name, **self.tokenizer_config
         )
         self.label_encoder = None
         self.train_dataset, self.valid_dataset, self.test_dataset = (
@@ -101,7 +106,7 @@ class HuggingfaceClassifer(TextClassifer):
 
     def show_score(self):
         metric = evaluate.load("accuracy")
-        metric.compute(
+        result = metric.compute(
             predictions=self.data.y_pred, references=self.data.y_test
         )
-        logging.info("Accuracy: %s", metric)
+        logging.info("Accuracy: %s", result)

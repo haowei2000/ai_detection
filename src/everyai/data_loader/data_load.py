@@ -1,5 +1,5 @@
-from collections.abc import Callable
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
@@ -7,64 +7,58 @@ from datasets import load_dataset
 
 from everyai.data_loader.filter import default_filter
 from everyai.utils.everyai_path import DATA_PATH
+from everyai.utils.load_args import set_attrs_2class
 
 
 class Data_loader:
     def __init__(
         self,
-        data_name: str,
-        question_column: str = "question",
-        answer_column: str = "answer",
-        file_path: str | Path = None,
-        data_type: str = None,
         data_filter: Callable[[pd.DataFrame], pd.DataFrame] = None,
+        **data_kwargs,
     ):
-        self.data_name = data_name
-        if file_path is None:
-            self.file_name_or_path = DATA_PATH / data_name
-        else:
-            self.file_name_or_path = file_path
-        if data_type is None:
-            self.file_type = Path(self.file_name_or_path).suffix
-        else:
-            self.file_type = data_type
-        self.question_column = question_column
-        self.answer_column = answer_column
-        self.filter = data_filter
+        default_args = [
+            "data_name",
+            "question_column",
+            "answer_column",
+            "file_path",
+            "data_type",
+            "data_filter",
+            "load_config",
+            "max_count",
+            "language",
+        ]
+        self.data_filter = data_filter
+        necessary_args = default_args
+        set_attrs_2class(self, data_kwargs, default_args, necessary_args)
+        if self.file_path is None:
+            self.file_path = DATA_PATH / self.data_name
 
     def load_data(
         self, max_count: int = None, return_type: str = "list"
     ) -> list[dict] | pd.DataFrame:
-        if (
-            Path(self.file_name_or_path).exists()
-            or self.file_type == "huggingface"
-        ):
-            logging.info("Loading data from %s", self.file_name_or_path)
-            match self.file_type:
+        if Path(self.file_path).exists() or self.data_type == "huggingface":
+            logging.info("Loading data from %s", self.file_path)
+            match self.data_type:
                 case "csv":
-                    loaded_data = pd.read_csv(self.file_name_or_path)
+                    loaded_data = pd.read_csv(self.file_path)
                 case "xlsx":
-                    loaded_data = pd.read_excel(self.file_name_or_path)
+                    loaded_data = pd.read_excel(self.file_path)
                 case "jsonl":
-                    loaded_data = pd.read_json(
-                        self.file_name_or_path, lines=True
-                    )
+                    loaded_data = pd.read_json(self.file_path, lines=True)
                 case "json":
-                    loaded_data = pd.read_json(self.file_name_or_path)
+                    loaded_data = pd.read_json(self.file_path)
                 case "huggingface":
                     loaded_data = load_dataset(
-                        self.file_name_or_path
+                        self.file_path, **self.load_config
                     ).to_pandas()
                 case _:
                     logging.error("Invalid file format")
-        elif Path(self.file_name_or_path).exists():
+        elif Path(self.file_path).exists():
             logging.error("Invalid file type")
         else:
-            logging.error("File not found: %s", self.file_name_or_path)
-        if self.filter is not None:
-            loaded_data = self.filter(loaded_data)
-        else:
-            loaded_data = default_filter(loaded_data)
+            logging.error("File not found: %s", self.file_path)
+        if self.data_filter is not None:
+            loaded_data = self.data_filter(loaded_data)
             logging.info(
                 "Default filter is applied, if you want to apply custom filter, "
                 "please provide the filter function"
@@ -95,15 +89,6 @@ class Data_loader:
     def apply_filter(self, orginal_data: pd.DataFrame) -> pd.DataFrame:
         return (
             orginal_data
-            if self.filter is None
-            else orginal_data[orginal_data.apply(self.filter, axis=1)]
+            if self.data_filter is None
+            else orginal_data[orginal_data.apply(self.data_filter, axis=1)]
         )
-
-
-if __name__ == "__main__":
-    loader = Data_loader("wanghw/human-ai-comparison", "question")
-    data = loader.load_data()
-    print(data)
-    loader = Data_loader("test.invalid", "question")
-    data = loader.load_data()
-    print(data)

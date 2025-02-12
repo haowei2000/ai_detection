@@ -1,67 +1,46 @@
 import logging
 
-import datasets
-import evaluate
+import pytorch_lightning as pl
 import torch
-from transformers import (
-    AutoTokenizer,
-    DataCollatorWithPadding,
-    Trainer,
-    TrainingArguments,
-)
+from lightning.pytorch.loggers import WandbLogger
 
 from everyai.classifier.classify import TextClassifer, label_encode, split_data
-from everyai.utils.everyai_path import MODEL_PATH
 from everyai.classifier.multi_feature_model.fusionBert import (
+    CrossAttentionFeatureFusion,
     FeatureFusionBertClassfier,
+    FeatureFusionDataModule,
+    HFeatureFusion,
 )
 
 
-class HuggingfaceClassifer(TextClassifer):
+class PLClassifer(TextClassifer):
     def __init__(
         self,
         texts=None,
         labels=None,
         data_name="",
-        classfiy_config=None,
+        **classfiy_config,
     ):
         super().__init__(
             texts=texts, labels=labels, data_name=data_name, **classfiy_config
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name)
-        fusion_model_dict = {
-            "FeatureFusionBertClassfier": FeatureFusionBertClassfier(),
+        if self.model_config is None:
+            self.model_config = {}
+        model_dict = {
+            "fusion_bert": FeatureFusionBertClassfier(
+                fusion_module=HFeatureFusion(
+                    feature_num=3, feature_len=768, output_dim=768
+                ),
+                lr=1e-6,
+                **self.model_config,
+            ),
         }
-        
-        self.model = fusion_model_dict[self.model_name]
-        if "bert" in self.model_name.lower():
-            self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        self.model = model_dict[self.model_name]
+        self.data_moudle = None
         self.label_encoder = None
-        self.train_dataset, self.valid_dataset, self.test_dataset = (
-            None,
-            None,
-            None,
-        )
-        self.train_args["output_dir"] = MODEL_PATH / self.classifier_name
 
-    def _tokenize(self, texts: list[str], labels: list[str]):
-        self.label_encoder, tokenzied_labels = label_encode(labels)
-        tokenzied_labels = torch.tensor(tokenzied_labels)
-        dataset = datasets.Dataset.from_dict(
-            {"text": texts, "label": tokenzied_labels}
-        )
-
-        def _tokenizer_fn(example):
-            return self.tokenizer(example["text"], **self.tokenizer_config)
-
-        tokenzied_dataset = dataset.map(_tokenizer_fn, batched=True)
-        tokenzied_dataset.set_format(
-            type="torch", columns=["input_ids", "attention_mask", "label"]
-        )
-        tokenzied_dataset = tokenzied_dataset.remove_columns(["text"])
-        return tokenzied_dataset
-
-    def train(self):
+    def _prepare_data(self):
+        self.label_encoder, self.labels = label_encode(self.labels)
         (
             self.data.x_train,
             self.data.x_valid,
@@ -73,36 +52,35 @@ class HuggingfaceClassifer(TextClassifer):
             self.data.valid_indices,
             self.data.test_indices,
         ) = split_data(self.texts, self.labels)
-        self.train_dataset = self._tokenize(
-            self.data.x_train, self.data.y_train
+        logging.info(
+            "Data was splited into train(%i), valid(%i) and test(%i)",
+            len(self.data.x_train),
+            len(self.data.x_valid),
+            len(self.data.x_test),
         )
-        self.valid_dataset = self._tokenize(
-            self.data.x_valid, self.data.y_valid
-        )
-        self.test_dataset = self._tokenize(self.data.x_test, self.data.y_test)
-        train_args = TrainingArguments(**self.train_args)
-        data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
-        trainer = Trainer(
-            model=self.model,
-            args=train_args,
-            train_dataset=self.train_dataset,
-            eval_dataset=self.valid_dataset,
-            data_collator=data_collator,
-        )
-        trainer.train()
+        data = {
+            "train": {"text": self.data.x_train, "label": self.data.y_train},
+            "valid": {"text": self.data.x_valid, "label": self.data.y_valid},
+            "test": {"text": self.data.x_test, "label": self.data.y_test},
+        }
+        data_moudle_dict = {
+            "fusion_bert": FeatureFusionDataModule(data=data),
+        }
+        self.data_moudle = data_moudle_dict[self.tokenizer_name]
 
-    def test(self):
-        trainer = Trainer(model=self.model)
-        predictions = trainer.predict(self.test_dataset)
-        self.data.y_pred = torch.argmax(
-            torch.tensor(predictions.predictions), axis=1
+    def train(self):
+        self._prepare_data()
+        if not hasattr(self, "train_args") or self.train_args is None:
+            self.train_args = {
+                "max_epochs": 10,
+                "devices": 2,
+                "accelerator": "auto",
+            }
+        wandb_logger = WandbLogger(project="everyAI", log_model="all")
+        trainer = pl.Trainer(
+            **self.train_args,
+            logger=wandb_logger,
         )
-
-        self.data.y_test = self.label_encoder.transform(self.data.y_test)
-
-    def show_score(self):
-        metric = evaluate.load("accuracy")
-        metric.compute(
-            predictions=self.data.y_pred, references=self.data.y_test
-        )
-        logging.info("Accuracy: %s", metric)
+        logging.info("log file was saved in %s", "lightning_logs")
+        trainer.fit(self.model, self.data_moudle)
+        wandb_logger.watch(model=self.model)

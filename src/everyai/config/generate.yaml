@@ -1,22 +1,28 @@
-# generate_list:
+generate_list:
 # - generator_type: "openai"
 #   model_name: "Meta-Llama-3-1-8B-Instruct"
 #   model_path: "Meta-Llama-3-1-8B-Instruct"
 #   proxy: ""
 #   base_url: "http://10.48.48.30:8000/v1"
 #   api_key: "0"
-
+# - generator_type: "huggingface"
+#   model_name: "THUDM/glm-4-9b-chat-hf"
+#   model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
+#   gen_kwargs:
+#     do_sample: true
+#     max_new_tokens: 128
+#     temperature: 0.8
+#     top_p: 0.8
+#     top_k: 1
+# - generator_type: "huggingface"
+#   model_name: "glm4-9b-chat"
+#   model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
+# - generator_type: "huggingface"
+#   model_name: "Qwen/Qwen2-5-7B-Instruct"
+#   model_path: "/root/.cache/modelscope/hub/Qwen/Qwen2.5-7B-Instruct"
+# - generator_type: "huggingface"
+#   model_name: "Meta-Llama-3-1-8B-Instruct"
+#   model_path: "/public/model/hub/LLM-Research/Meta-Llama-3-1-8B-Instruct"
 - generator_type: "huggingface"
-  model_name: "THUDM/glm-4-9b-chat-hf"
-  model_path: "/root/.cache/modelscope/hub/ZhipuAI/glm-4-9b-chat-hf"
-  gen_kwargs:
-    do_sample: true
-    max_new_tokens: 128
-    temperature: 0.8
-    top_p: 0.8
-    top_k: 1
-- generator_type: "huggingface"
-  model_name: "Qwen/Qwen2.5-7B-Instruct"
-  model_path: "/root/.cache/modelscope/hub/Qwen/Qwen2.5-7B-Instruct"
-  gen_kwargs:
-    max_new_tokens: 128
+  model_name: "MindChat-Qwen2-4B"
+  model_path: /root/.cache/modelscope/hub/X-D-Lab/MindChat-Qwen-1_8B/

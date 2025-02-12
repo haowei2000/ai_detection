@@ -41,6 +41,8 @@ evaluate = "^0.4.3"
 modelscope = "^1.21.1"
 spacy = "^3.8.3"
 vadersentiment = "^3.3.2"
+lightning = "^2.5.0.post0"
+transformers-stream-generator = "^0.0.5"
 
 [tool.poetry.group.dev.dependencies]
 debugpy = "^1.8.11"

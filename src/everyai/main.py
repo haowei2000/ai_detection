@@ -1,28 +1,23 @@
 import logging
 
 import pandas as pd
+import torch
 from tqdm import tqdm
 
+from everyai.classifier.fusion_classifer import PLClassifer
 from everyai.classifier.huggingface_classifier import HuggingfaceClassifer
 from everyai.classifier.sklearn_classifier import SklearnClassifer
 from everyai.data_loader.data_load import Data_loader
-from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
+from everyai.data_loader.data_process import split_remove_stopwords_punctuation
 from everyai.data_loader.everyai_dataset import EveryaiDataset
-from everyai.data_loader.mongo_connection import get_mongo_connection
 from everyai.explanation.explain import LimeExplanation, ShapExplanation
 from everyai.generator.generate import Generator
 from everyai.topic.my_bertopic import create_topic
-from everyai.utils.everyai_path import (
-    BERT_TOPIC_CONFIG_PATH,
-    CLASSIFY_CONFIG_PATH,
-    DATA_LOAD_CONFIG_PATH,
-    DATA_PATH,
-    FIG_PATH,
-    GENERATE_CONFIG_PATH,
-    MONGO_CONFIG_PATH,
-)
+from everyai.utils.everyai_path import (BERT_TOPIC_CONFIG_PATH,
+                                        CLASSIFY_CONFIG_PATH,
+                                        DATA_LOAD_CONFIG_PATH, DATA_PATH,
+                                        FIG_PATH, GENERATE_CONFIG_PATH)
 from everyai.utils.load_config import get_config
-import torch
 
 
 def generate():
@@ -33,13 +28,12 @@ def generate():
     logging.info("Data configs: %s", data_list_configs)
     for data_config in data_list_configs["data_list"]:
         data_loader = Data_loader(
-            data_name=data_config["data_name"],
-            question_column=data_config["question_column"],
-            answer_column=data_config["answer_column"],
-            file_path=data_config["file_path"],
-            data_type=data_config["data_type"],
+            **data_config,
         )
-        qa_datas = data_loader.load_data(max_count=data_config["max_count"])
+        max_count = (
+            data_config["max_count"] if "max_count" in data_config else None
+        )
+        qa_datas = data_loader.load_data(max_count=max_count)
         everyai_dataset = EveryaiDataset(
             datas=pd.DataFrame(qa_datas),
             dataname=data_config["data_name"],
@@ -49,23 +43,40 @@ def generate():
             file_format="csv",
         )
         for generate_config in generate_list_configs["generate_list"]:
+            logging.info("Generate config: %s", generate_config)
             generator = Generator(config=generate_config)
             for data in tqdm(
                 qa_datas, desc="Generating data", total=len(qa_datas)
             ):
-                ai_response: str = generator.generate(data["question"])
-                everyai_dataset.insert_ai_response(
-                    question=data["question"],
-                    ai_name=generate_config["model_name"],
-                    ai_response=ai_response,
-                )
-                everyai_dataset.insert_human_response(
-                    question=data["question"], human_response=data["answer"]
-                )
+                if everyai_dataset.record_exist(
+                    data["question"], generate_config["model_name"]
+                ):
+                    logging.info("Record exists: %s", data["question"])
+                else:
+                    ai_response: str = generator.generate(data["question"])
+                    everyai_dataset.upsert2mongo(
+                        data["question"],
+                        generate_config["model_name"],
+                        ai_response,
+                    )
+                    everyai_dataset.upsert2mongo(
+                        data["question"],
+                        "human",
+                        data["answer"],
+                    )
+                    everyai_dataset.insert_ai_response(
+                        question=data["question"],
+                        ai_name=generate_config["model_name"],
+                        ai_response=ai_response,
+                    )
+                    everyai_dataset.insert_human_response(
+                        question=data["question"],
+                        human_response=data["answer"],
+                    )
             torch.cuda.empty_cache()
-            mongodb_config = get_config(MONGO_CONFIG_PATH)
-            db = get_mongo_connection(**mongodb_config)
-            everyai_dataset.save(path_or_database=db, file_format="mongodb")
+            # mongodb_config = get_config(file_path=MONGO_CONFIG_PATH)
+            # db = get_mongo_connection(**mongodb_config)
+            # everyai_dataset.save(path_or_database=db, file_format="mongodb")
             everyai_dataset.save()
 
 
@@ -110,7 +121,6 @@ def classify():
         )
         everyai_dataset.read(file_format="mongodb")
         texts, labels = everyai_dataset.get_records(only2class=True)
-        print(texts)
         logging.info("Label: %s", set(labels))
         for classify_config in get_config(file_path=CLASSIFY_CONFIG_PATH)[
             "classifier_list"
@@ -121,8 +131,10 @@ def classify():
                         **classify_config,
                     )
                 case "huggingface":
-                    text_classifier = HuggingfaceClassifer(
-                        classfiy_config=classify_config
+                    text_classifier = HuggingfaceClassifer(**classify_config)
+                case "pl":
+                    text_classifier = PLClassifer(
+                        **classify_config,
                     )
                 case _:
                     raise ValueError("Classifier type not supported")

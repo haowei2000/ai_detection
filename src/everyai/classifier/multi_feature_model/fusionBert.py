@@ -1,46 +1,59 @@
 import math
-import token
 
+import pytorch_lightning as pl
 import spacy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from datasets import Dataset, load_dataset
-from torch.utils.data import DataLoader
-from transformers import (
-    AdamW,
-    BertForSequenceClassification,
-    BertTokenizer,
-    PreTrainedTokenizer,
-    get_scheduler,
-)
+from datasets import load_dataset
+from lightning.pytorch.loggers import WandbLogger
+from sklearn.metrics import f1_score
+from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
+from transformers import BertForSequenceClassification, BertTokenizer
+from transformers.optimization import get_scheduler
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 
 def truncate_and_pad_single_sequence(seq, max_length):
-    # 截断序列
     truncated_seq = seq[:max_length]
-    # 计算需要填充的长度
     padding = max_length - len(truncated_seq)
     return F.pad(truncated_seq, (0, padding), value=0)
 
 
 class FeatureFusionBertTokenizer:
-    def __init__(self, semantic_tokenizer: PreTrainedTokenizer, **kwargs):
-        self.sentiment_max_length = kwargs.get("sentiment_max_length", 512)
-        self.semantic_tokenizer = semantic_tokenizer
+    def __init__(self, feature_len, **kwargs):
+        self.feature_len = feature_len
+        self.sentiment_max_length = kwargs.get(
+            "sentiment_max_length", feature_len
+        )
         self.nlp = spacy.load("en_core_web_sm")
         self.all_tags = self.nlp.get_pipe("tagger").labels
         self.sentiment_analyzer = SentimentIntensityAnalyzer()
+        self.bert_model = BertForSequenceClassification.from_pretrained(
+            "bert-base-uncased"
+        )
+        self.bert_tokenzier = BertTokenizer.from_pretrained(
+            "bert-base-uncased"
+        )
 
-    def analyze_word_level_sentiment(
-        self, text: str, max_length=512
-    ) -> torch.tensor:
-        # 使用SpaCy进行词汇级分析
+    def semantic(self, text: str, **kwargs):
+        tokenzied = self.bert_tokenzier(
+            text,
+            return_tensors="pt",
+            max_length=512,
+            padding="max_length",
+            truncation=True,
+            **kwargs,
+        )
+        with torch.no_grad():
+            embedding = self.bert_model.bert.embeddings(tokenzied["input_ids"])
+            embedding = torch.mean(embedding, dim=1, keepdim=False)
+        return embedding, torch.ones_like(embedding)
+
+    def analyze_word_level_sentiment(self, text: str) -> torch.tensor:
         doc = self.nlp(text)
-
         word_sentiment = []
-
         for token in doc:
             if token.is_stop or token.is_punct:
                 sentiment = 0.0
@@ -50,203 +63,331 @@ class FeatureFusionBertTokenizer:
                 )["compound"]
             word_sentiment.append(sentiment)
         sentiment = torch.tensor(word_sentiment, dtype=torch.float)
-        sentiment = truncate_and_pad_single_sequence(sentiment, max_length)
-        return sentiment.unsqueeze(0).unsqueeze(0)
+        return self._padding(sentiment)
 
     def pos_feature(self, text: str) -> torch.tensor:
         doc = self.nlp(text)
         text_tags = [token.tag_ for token in doc]
-        return (
-            torch.tensor(
-                [text_tags.count(label) for label in self.all_tags],
-                dtype=torch.float,
-            )
-            .unsqueeze(0)
-            .unsqueeze(0)
+        pos = torch.tensor(
+            [text_tags.count(label) for label in self.all_tags],
+            dtype=torch.float,
         )
+        return self._padding(pos)
 
-    def __call__(
-        self,
-        text: str,
-        **kwargs,
-    ):
-        """
-        自定义的编码函数，支持额外的特征输入。
-        :param text: 输入文本
-        """
-        # 使用基础 tokenizer 进行编码
-        encoding = self.semantic_tokenizer(text, **kwargs)
-        features = [
-            self.pos_feature(text),
-            self.analyze_word_level_sentiment(
-                text, max_length=self.sentiment_max_length
-            ),
-        ]
-        encoding["features"] = features
+    def _padding(self, input_tensor):
+        input_tensor = truncate_and_pad_single_sequence(
+            input_tensor, self.feature_len
+        )
+        attention_mask = torch.tensor(
+            [1] * len(input_tensor), dtype=torch.float
+        )
+        return input_tensor.unsqueeze(0), attention_mask.unsqueeze(0)
+
+    def __call__(self, text: str):
+        encoding = {"semantic": {}, "pos": {}, "sentiment": {}}
+        (
+            encoding["semantic"]["input_ids"],
+            encoding["semantic"]["attention_mask"],
+        ) = self.semantic(text)
+        encoding["pos"]["input_ids"], encoding["pos"]["attention_mask"] = (
+            self.pos_feature(text)
+        )
+        (
+            encoding["sentiment"]["input_ids"],
+            encoding["sentiment"]["attention_mask"],
+        ) = self.analyze_word_level_sentiment(text)
         return encoding
 
-    def batch_encode_plus(self, batch_text: list[str], **kwargs):
-        """
-        批量编码函数
-        :param batch_text: 输入文本列表
-        """
-        batch_encoding = self.semantic_tokenizer.batch_encode_plus(
-            batch_text, **kwargs
-        )
-        batch_pos = torch.cat(
-            [self.pos_feature(text) for text in batch_text], dim=0
-        )
-        batch_sentiments = torch.cat(
-            [
-                self.analyze_word_level_sentiment(
-                    text, max_length=self.sentiment_max_length
+    # @lru_cache(maxsize=12)
+    def batch_encode_plus(self, batch_text: list[str]):  # -> list:
+        batch_encoding = []
+        for text in tqdm(batch_text, desc="Encoding batch"):
+            if not isinstance(text, str):
+                raise ValueError(
+                    f"Expected text to be of type str, but got {type(text)}"
                 )
-                for text in batch_text
-            ],
-            dim=0,
-        )
-        batch_encoding["features"] = [batch_pos, batch_sentiments]
+            encoding = self.__call__(text)
+            batch_encoding.append(encoding)
         return batch_encoding
+
+
+class HFeatureFusion(nn.Module):
+    def __init__(
+        self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1
+    ):
+        super().__init__()
+        self.feature_num = feature_num
+        self.feature_len = feature_len
+        self.num_heads = num_heads
+        self.dropout = dropout
+        self.cross_attentions = nn.MultiheadAttention(
+            embed_dim=self.feature_len,
+            num_heads=self.num_heads,
+            dropout=self.dropout,
+        )
+        self.feature_fusion_dim = (feature_num - 1) * feature_len
+        self.fc = nn.Linear(self.feature_fusion_dim, output_dim)
+
+    def forward(self, *features: torch.tensor):
+        if len(features) != self.feature_num:
+            raise ValueError(
+                f"Expected {self.feature_num} features, but got {len(features)}"
+            )
+        outputs = []
+        for i in range(self.feature_num - 1):
+            key = features[i]["input_ids"] if i == 0 else outputs[i - 1]
+            query = features[i + 1]["input_ids"]
+            value = features[i + 1]["input_ids"]
+            output, _ = self.cross_attentions(
+                query,
+                key,
+                value,
+            )
+            outputs.append(output)
+        output = self.fc(torch.cat(outputs, dim=-1))
+        return output
 
 
 class CrossAttentionFeatureFusion(nn.Module):
     def __init__(
-        self,
-        feature_num,
-        proj_dim,
-        num_heads=2,
-        dropout=0.1,
+        self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1
     ):
-        """
-        基于交叉注意力的特征融合模块
-        :param proj_dim: 投影维度
-        :param output_dim: 输出维度
-        :param num_heads: 多头注意力机制的头数
-        :param dropout: Dropout 概率
-        """
-        super(CrossAttentionFeatureFusion, self).__init__()
-        self.proj_dim = proj_dim
+        super().__init__()
+        self.feature_len = feature_len
         self.num_heads = num_heads
         self.dropout = dropout
-        self.projections = nn.ModuleList()
         self.feature_num = feature_num
         self.cross_attentions = nn.MultiheadAttention(
-            embed_dim=self.proj_dim,
+            embed_dim=self.feature_len,
             num_heads=self.num_heads,
             dropout=self.dropout,
         )
+        feature_fusion_dim = math.perm(feature_num, 2) * feature_len
+        self.fc = nn.Linear(feature_fusion_dim, output_dim)
 
-    def forward(self, features: list[torch.tensor]):
-        """
-        前向传播
-        :param features: 可变数量的特征向量，每个特征形状为 (seq_len, batch_size, feature_dim)
-        :return: 融合后的特征，形状为 (seq_len, batch_size, output_dim)
-        """
-        projected_features = []
-        outputs = []
-        for i in range(self.feature_num):
-            if len(self.projections) <= i:
-                self.projections.append(
-                    nn.Linear(features[i].size(-1), self.proj_dim)
-                )
-                projected_features.append(self.projections[i](features[i]))
-
+    def forward(self, *features: torch.tensor):
+        if len(features) != self.feature_num:
+            raise ValueError(
+                f"Expected {self.feature_num} features, but got {len(features)}"
+            )
+        output_list = []
         for i in range(self.feature_num):
             for j in range(self.feature_num):
                 if i != j:
-                    query = projected_features[i]  # Query tensor
-                    key = projected_features[j]  # Key tensor
-                    value = projected_features[j]  # Value tensor
-                    output, _ = self.cross_attentions(query, key, value)
-                    outputs.append(output)
-        return torch.cat(outputs, dim=-1)
+                    query = features[i]["input_ids"]
+                    key = features[j]["input_ids"]
+                    value = features[j]["input_ids"]
+                    output, _ = self.cross_attentions(
+                        query,
+                        key,
+                        value,
+                    )
+                    output_list.append(output)
+        output_vec = self.fc(torch.cat(output_list, dim=-1))
+        return output_vec
 
 
-class FeatureFusionBertClassfier(nn.Module):
+class FeatureFusionBertClassfier(pl.LightningModule):
     def __init__(
-        self, feature_num=3, proj_dim=64, bert_input_dim=768, num_labels=2
+        self,
+        feature_num=3,
+        feature_len=768,
+        bert_input_dim=768,
+        num_labels=2,
+        lr=1e-4,
+        fusion_module=None,
     ):
-        super(FeatureFusionBertClassfier, self).__init__()
+        super().__init__()
+        if fusion_module is None:
+            self.fusion_module = CrossAttentionFeatureFusion(
+                feature_num=feature_num,
+                feature_len=feature_len,
+                output_dim=bert_input_dim,
+            )
+        else:
+            self.fusion_module = fusion_module
+        self.save_hyperparameters()
         bert_classifier = BertForSequenceClassification.from_pretrained(
             "bert-base-uncased", num_labels=num_labels
         )
-        self.embeddings = bert_classifier.bert.embeddings
+        bert_classifier.train()
         self.encoder = bert_classifier.bert.encoder
         self.pooler = bert_classifier.bert.pooler
-        self.fusion_module = CrossAttentionFeatureFusion(
-            feature_num=feature_num, proj_dim=proj_dim
-        )
-        feature_fusion_outdim = (
-            math.perm(feature_num, 2) * proj_dim
-        )  # C(n, 2) * proj_dim
-        self.fc = nn.Linear(feature_fusion_outdim, bert_input_dim)
         self.dropout = bert_classifier.dropout
         self.classfier = bert_classifier.classifier
+        self.lr = lr
 
-    def forward(self, features: list[torch.tensor], input_ids: torch.tensor):
-        # freeze the embeddings
-        with torch.no_grad():
-            bert_feature = self.embeddings(input_ids=input_ids)
-        bert_feature, _ = torch.max(bert_feature, dim=1, keepdim=True)
-        features.append(bert_feature)
-        fused_features = self.fusion_module(features)
-        encoder_input = self.fc(fused_features)
-        encoder_output = self.encoder(encoder_input)
+    def forward(self, *features):
+        self.train()  # Set all modules to train
+        for feature in features:
+            feature["input_ids"] = F.normalize(
+                feature["input_ids"], p=2, dim=-1
+            )
+        fused_features = self.fusion_module(*features)
+        encoder_output = self.encoder(fused_features)
         pooler_output = self.pooler(encoder_output[0])
         pooler_output = self.dropout(pooler_output)
-        return self.classfier(pooler_output)
+        output = self.classfier(pooler_output)
+        return output
+
+    def training_step(self, batch, batch_idx):
+        outputs = self(batch["semantic"], batch["pos"], batch["sentiment"])
+        loss = F.cross_entropy(outputs, batch["labels"])
+        self.log("train_loss", loss)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        outputs = self(batch["semantic"], batch["pos"], batch["sentiment"])
+        y_pred = torch.argmax(outputs, dim=-1)
+        y_test = batch["labels"]
+        acc = (y_pred == y_test).sum().float() / len(y_test)
+        f1 = f1_score(
+            y_test.cpu().numpy(), y_pred.cpu().numpy(), average="weighted"
+        )
+        self.log("test_acc", acc)
+        self.log("test_f1", f1)
+        return {"test_acc": acc, "test_f1": f1}
+
+    def test_epoch_end(self, outputs):
+        avg_acc = sum(x["test_acc"] for x in outputs) / len(outputs)
+        avg_f1 = sum(x["test_f1"] for x in outputs) / len(outputs)
+        self.log("avg_test_acc", avg_acc, prog_bar=True)
+        self.log("avg_test_f1", avg_f1, prog_bar=True)
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=self.lr, momentum=0.9
+        )
+        scheduler = get_scheduler(
+            name="linear",
+            optimizer=optimizer,
+            num_warmup_steps=0,
+            num_training_steps=self.trainer.estimated_stepping_batches,
+        )
+        return [optimizer], [scheduler]
+
+
+class FeatureFusionDataset(Dataset):
+    def __init__(self, inputs_datasets: list, labels: list):
+        self.inputs = inputs_datasets
+        self.labels = labels
+
+    def __getitem__(self, idx):
+        item = self.inputs[idx]
+        item["labels"] = self.labels[idx]
+        return item
+
+    def __len__(self):
+        return len(self.labels)
+
+
+class FeatureFusionDataModule(pl.LightningDataModule):
+    def __init__(self, data, batch_size=32):
+        """
+        -Args:
+            train_data (dict): Dictionary containing the training data
+            test_data (dict): Dictionary containing the test data
+            valid_data (dict): Dictionary containing the validation data
+            batch_size (int): Batch size for the data loader
+
+        -Note: The data should be in the format like {"text": list[str], "label": list[int]}
+        """
+        super().__init__()
+        train_data, test_data, valid_data = (
+            data["train"],
+            data["test"],
+            data["valid"],
+        )
+        self.batch_size = batch_size
+        self.train_raw_data = train_data
+        self.test_raw_data = test_data
+        self.valid_raw_data = valid_data
+        self.train_tokenized, self.valid_tokenized, self.test_tokenized = (
+            None,
+            None,
+            None,
+        )
+        self.train_dataset, self.valid_dataset, self.test_dataset = (
+            None,
+            None,
+            None,
+        )
+        self.tokenizer: FeatureFusionBertTokenizer = None
+
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage=None):
+        self.tokenizer: FeatureFusionBertTokenizer = (
+            FeatureFusionBertTokenizer(feature_len=768)
+        )
+        if not isinstance(self.tokenizer, FeatureFusionBertTokenizer):
+            raise TypeError(
+                f"Expected self.tokenizer to be of type FeatureFusionBertTokenizer, but got {type(self.tokenizer)}"
+            )
+        if stage == "fit" or stage is None:
+            self.train_tokenized = self.tokenizer.batch_encode_plus(
+                batch_text=self.train_raw_data["text"]
+            )
+            self.train_dataset = FeatureFusionDataset(
+                self.train_tokenized, self.train_raw_data["label"]
+            )
+        if stage == "test" or stage is None:
+            self.test_tokenized = self.tokenizer.batch_encode_plus(
+                self.test_raw_data["text"]
+            )
+            self.test_dataset = FeatureFusionDataset(
+                self.test_tokenized, self.test_raw_data["label"]
+            )
+        if stage == "validate" or stage is None:
+            self.valid_tokenized = self.tokenizer.batch_encode_plus(
+                self.valid_raw_data["text"]
+            )
+            self.valid_dataset = FeatureFusionDataset(
+                self.valid_tokenized, self.valid_raw_data["label"]
+            )
+
+    def train_dataloader(self):
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=15,
+        )
 
 
 if __name__ == "__main__":
-    dataset = load_dataset("imdb")
-    test_input = dataset["train"].select(range(2))
-    train_dataset = dataset["train"].shuffle(seed=42).select(range(500))
-    model = FeatureFusionBertClassfier(feature_num=3)
-    semantic_tokenzier = BertTokenizer.from_pretrained("bert-base-uncased")
-    tokenizer: FeatureFusionBertTokenizer = FeatureFusionBertTokenizer(
-        semantic_tokenzier, sentiment_max_length=20
-    )
 
-    # train_tokenizerd = train_dataset.map(tokenzier_funtion)
-    tokenized_input = tokenizer.batch_encode_plus(
-        test_input["text"],
-        padding=True,
-        truncation=True,
-        max_length=512,
-        return_tensors="pt",
+    def load_data(max_count=1000):
+        dataset = load_dataset("imdb")
+        train_data = {
+            "text": dataset["train"]["text"][:max_count],
+            "label": dataset["train"]["label"][:max_count],
+        }
+        test_data = {
+            "text": dataset["test"]["text"][:max_count],
+            "label": dataset["test"]["label"][:max_count],
+        }
+        valid_data = {
+            "text": dataset["unsupervised"]["text"][:max_count],
+            "label": dataset["unsupervised"]["label"][:max_count],
+        }
+        return {"train": train_data, "test": test_data, "valid": valid_data}
+
+    data = load_data()
+    data_module = FeatureFusionDataModule(data)
+    model = FeatureFusionBertClassfier(
+        fusion_module=CrossAttentionFeatureFusion(
+            feature_num=3, feature_len=768, output_dim=768
+        )
     )
-    tokenized_input["label"] = test_input["label"]
-    print(tokenized_input["input_ids"].shape)
-    for feature in tokenized_input["features"]:
-        print(feature.shape)
-    print(model(tokenized_input["features"], tokenized_input["input_ids"]))
-    train_dataset_tokenized = tokenizer.batch_encode_plus(
-        train_dataset["text"],
-        padding=True,
-        truncation=True,
-        max_length=512,
-        return_tensors="pt",
+    wandb_logger = WandbLogger(project="everyAI", log_model="all")
+    trainer = pl.Trainer(
+        max_epochs=2,
+        devices=1 if torch.cuda.is_available() else None,
+        accelerator="gpu" if torch.cuda.is_available() else "cpu",
+        logger=wandb_logger,
     )
-    train_dataset_tokenized["label"] = train_dataset["label"]
-    train_dataloader = DataLoader(train_dataset_tokenized, shuffle=True, batch_size=8)
-    optimizer = AdamW(model.parameters(), lr=5e-5)
-    num_epochs = 3
-    num_training_steps = num_epochs * len(train_dataloader)
-    lr_scheduler = get_scheduler(
-        name="linear",
-        optimizer=optimizer,
-        num_warmup_steps=0,
-        num_training_steps=num_training_steps,
-    )
-    # TODO Fix error: KeyError: 'Invalid key. Only three types of key are available: 
-    # (1) string, (2) integers for backend Encoding, and (3) slices for data subsetting.'
-    model.train()
-    for epoch in range(num_epochs):
-        for batch in train_dataloader:
-            optimizer.zero_grad()
-            outputs = model(batch["features"], batch["input_ids"])
-            loss = F.cross_entropy(outputs, batch["label"])
-            loss.backward()
-            optimizer.step()
-            lr_scheduler.step()
-        print(f"Epoch {epoch + 1} completed with loss: {loss.item()}")
+    trainer.fit(model, data_module)
+    # trainer.test(model, datamodule=data_module)
+    wandb_logger.watch(model)

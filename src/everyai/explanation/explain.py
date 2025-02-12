@@ -28,12 +28,15 @@ class LimeExplanation(Explanation):
         test_indices = self.classifier.data.test_indices.tolist()
         test_text = [self.classifier.texts[i] for i in test_indices]
         explainer = LimeTextExplainer(class_names=self.labels)
-        for i, text in enumerate(test_text):
-            exp = explainer.explain_instance(
-                text, self.pipeline.predict_proba, num_features=6
-            )
-            exp.save_to_file(output_path / f"text{i}.html")
-        logging.info("Lime explanation saved to %s", output_path)
+        if self.classifier.classifier_type == "sklearn":
+            for i, text in enumerate(test_text):
+                exp = explainer.explain_instance(
+                    text, self.pipeline.predict_proba, num_features=6
+                )
+                exp.save_to_file(output_path / f"text{i}.html")
+            logging.info("Lime explanation saved to %s", output_path)
+        else:
+            logging.error("Lime explanation not supported for %s", self.classifier.classifier_type)
 
 
 class ShapExplanation(Explanation):
@@ -47,12 +50,11 @@ class ShapExplanation(Explanation):
             output_path.mkdir(parents=True)
         test_indices = self.classifier.data.test_indices.tolist()
         test_text = [self.classifier.texts[i] for i in test_indices]
-        explainer = shap.Explainer(
-            self.pipeline.predict_proba, masker=shap.maskers.Text()
-        )
-        for i, text in enumerate(test_text):
-            shap_values = explainer([text])
-            html_output = shap.plots.text(shap_values, display=False)
-            with open(output_path / f"text{i}", "w", encoding="utf-8") as f:
-                f.write(html_output)
-        logging.info("Shap explanation saved to %s", output_path)
+        if self.classifier.classifier_type == "sklearn":
+            explainer = shap.Explainer(self.pipeline)
+            for i, text in enumerate(test_text):
+                shap_values = explainer(text)
+                shap.plots.text(shap_values, output_path / f"text{i}")
+            logging.info("Shap explanation saved to %s", output_path)
+        else:
+            logging.error("Shap explanation not supported for %s", self.classifier.classifier_type)

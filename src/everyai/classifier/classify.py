@@ -6,13 +6,17 @@ import pandas as pd
 from sklearn.calibration import LabelEncoder
 from sklearn.model_selection import train_test_split
 
-from everyai.data_loader.dataprocess import split_remove_stopwords_punctuation
+from everyai.data_loader.data_process import split_remove_stopwords_punctuation
 from everyai.utils.everyai_path import MODEL_PATH
 from everyai.utils.load_args import set_attrs_2class
 
 
 @dataclass
 class classifierData:
+    """
+    classifierData is a dataclass to store all the data related to classification.
+    """
+
     x: list | None = None
     y: list | None = None
     x_train: list | None = None
@@ -27,7 +31,10 @@ class classifierData:
     test_indices: list | None = None
 
 
-def label_encode(labels):
+def label_encode(labels: list[str]):
+    """
+    label_encode is a function to encode the labels using sklearn's LabelEncoder.
+    """
     encoder = LabelEncoder()
     labels_encoded = encoder.fit_transform(labels)
     logging.info("Labels encoded %s", dict(zip(labels, labels_encoded)))
@@ -37,26 +44,27 @@ def label_encode(labels):
 def split_data(
     x: np.array, y: np.array, train_size=0.8, valid_size=0.1, test_size=0.1
 ):  # -> tuple:
-    # 获取原始数据的索引
+    """
+    split_data is a function to split the data into train, valid and test sets
+    tips: split_data is design for getting the index for train, valid and test set
+    """
+    assert len(x) == len(y), "Length of x and y should be same"
     original_indices = pd.DataFrame(x).index
-
-    # 第一次划分: 训练集和测试集
-    x_train, x_test, y_train, y_test, train_indices, test_indices = (
+    x_train, x_test, y_train, y_test, indices_train, indices_test = (
         train_test_split(
             x,
             y,
             original_indices,
-            test_size=test_size,
+            train_size=train_size,
             random_state=42,
         )
     )
-    # 第二次划分: 训练集和验证集
-    x_train, x_valid, y_train, y_valid, train_indices, valid_indices = (
+    x_test, x_valid, y_test, y_valid, indices_train, indices_valid = (
         train_test_split(
-            x_train,
-            y_train,
-            train_indices,
-            test_size=valid_size / (train_size + valid_size),
+            x_test,
+            y_test,
+            indices_test,
+            test_size=test_size / (test_size + valid_size),
             random_state=42,
         )
     )
@@ -67,13 +75,17 @@ def split_data(
         y_train,
         y_valid,
         y_test,
-        train_indices,
-        valid_indices,
-        test_indices,
+        indices_train,
+        indices_valid,
+        indices_test,
     )
 
 
 class TextClassifer:
+    """
+    TextClassifer is a base class for all text classification models.
+    """
+
     def __init__(
         self,
         texts: list[str] = None,
@@ -82,7 +94,49 @@ class TextClassifer:
         language: str = "English",
         **classify_config,
     ):
-        allowed_keys = [
+        """
+        Allowed and default keys for classify_config are:
+
+        - model_name: str
+        - tokenizer_name: str
+        - classifier_type: str
+            Supported types: "sklearn", "transformers", "pytorch"
+        - split_size: dict
+            Example:
+            {
+                "train_size": 0.8,
+                "test_size": 0.1,
+                "valid_size": 0.1
+            }
+        - train_args: dict
+            Example:
+            {
+                "max_epochs": 10,
+                "devices": 1 if torch.cuda.is_available() else None,
+                "accelerator": "gpu" if torch.cuda.is_available() else "cpu",
+            }
+        - tokenizer_config: dict
+            Example:
+            {
+                "max_length": 512,
+                "padding": True,
+                "truncation": True,
+                "return_tensors": "pt",
+            }
+        - model_config: dict
+            Example:
+            {
+                "num_labels": 2,
+                "hidden_dropout_prob": 0.1,
+                "hidden_size": 768,
+                "num_hidden_layers": 12,
+                "num_attention_heads": 12,
+                "intermediate_size": 3072,
+                "hidden_act": "gelu"
+            }
+        - pipeline: list
+        """
+        default_keys = [
             "model_name",
             "tokenizer_name",
             "classifier_type",
@@ -92,8 +146,7 @@ class TextClassifer:
             "pipeline",
             "model_config",
         ]
-        necessary_keys = allowed_keys
-        set_attrs_2class(self, classify_config, necessary_keys, necessary_keys)
+        set_attrs_2class(self, classify_config, default_keys, default_keys)
         self.texts = texts
         self.labels = labels
         self.data_name = data_name
@@ -113,6 +166,10 @@ class TextClassifer:
             self.valid_size = self.split_size.get("valid_size", 0.1)
 
     def load_data(self, texts, labels, data_name):
+        """
+        load_data is a function to load the data into the classifier
+        when it was not set in init.
+        """
         if len(texts) != len(labels):
             logging.error("Length of texts and labels should be same")
             raise ValueError("Length of texts and labels should be same")
@@ -127,7 +184,11 @@ class TextClassifer:
         )
         return self.texts, self.labels, self.data_name
 
-    def process_data(self):
+    def process_data(self) -> list[str]:
+        """
+        process_data is a function to process the data before training.
+        the default procession is to split, remove stopwords and punctuation.
+        """
         self.texts = list(
             map(
                 lambda text: split_remove_stopwords_punctuation(
@@ -136,3 +197,4 @@ class TextClassifer:
                 self.texts,
             )
         )
+        return self.texts

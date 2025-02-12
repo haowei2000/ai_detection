@@ -3,7 +3,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from everyai.generator.openai_generate import openai_generate
-from everyai.generator.huggingface_generate import glm4, qwen2_5
+from everyai.generator.huggingface_generate import glm4, llama, qwen2_5
 from everyai.utils.everyai_path import GENERATE_CONFIG_PATH
 from everyai.utils.load_args import set_attrs_2class
 from everyai.utils.load_config import get_config
@@ -14,7 +14,13 @@ class Generator:
         # TODO: set param auto type
         self.generator_type = config["generator_type"]
         if self.generator_type == "huggingface":
-            default_params = ["model_name","model_path"]
+            default_params = [
+                "model_name",
+                "model_path",
+                "model",
+                "tokenizer",
+                "gen_kwargs",
+            ]
             allowed_keys = [
                 "generator_type",
                 "model_name",
@@ -53,9 +59,18 @@ class Generator:
                     model=self.model,
                     tokenizer=self.tokenizer,
                 )
-            case _ if "qwen2.5" in model_path_or_name.lower():
+            case _ if "qwen" in model_path_or_name.lower():
                 logging.info("qwen2.5 generator: %s", model_path_or_name)
                 self.model, self.tokenizer, response = qwen2_5(
+                    user_input=user_input,
+                    model_path_or_name=model_path_or_name,
+                    gen_kwargs=gen_kwargs,
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                )
+            case _ if "llama" in model_path_or_name.lower():
+                logging.info("llama generator: %s", model_path_or_name)
+                self.model, self.tokenizer, response = llama(
                     user_input=user_input,
                     model_path_or_name=model_path_or_name,
                     gen_kwargs=gen_kwargs,

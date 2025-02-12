@@ -3,11 +3,12 @@ import logging
 import datasets
 import evaluate
 import torch
-from transformers import (AutoModelForSequenceClassification, AutoTokenizer,
-                          DataCollatorWithPadding, Trainer, TrainingArguments)
+from transformers import (AutoTokenizer, DataCollatorWithPadding, Trainer,
+                          TrainingArguments)
 
 from everyai.classifier.classify import TextClassifer, label_encode, split_data
-from everyai.classifier.multi_feature_model.fusionBert import FeatureFusionBertClassfier, FeatureFusionBertTokenizer
+from everyai.classifier.multi_feature_model.fusionBert_backup import (
+    FeatureFusionBertClassfier, FeatureFusionBertTokenizer)
 from everyai.utils.everyai_path import MODEL_PATH
 
 
