@@ -28,8 +28,7 @@ class Data_loader:
             "language",
         ]
         self.data_filter = data_filter
-        necessary_args = default_args
-        set_attrs_2class(self, data_kwargs, default_args, necessary_args)
+        set_attrs_2class(self, data_kwargs, default_args, default_args)
         if self.file_path is None:
             self.file_path = DATA_PATH / self.data_name
 
