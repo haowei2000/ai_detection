@@ -8,15 +8,16 @@ from ai_detection.classifier.fusion_classifer import PLClassifer
 from ai_detection.classifier.huggingface_classifier import HuggingfaceClassifer
 from ai_detection.classifier.sklearn_classifier import SklearnClassifer
 from ai_detection.data_loader.data_load import Data_loader
-from ai_detection.data_loader.data_process import split_remove_stopwords_punctuation
+from ai_detection.data_loader.data_process import \
+    split_remove_stopwords_punctuation
 from ai_detection.data_loader.everyai_dataset import EveryaiDataset
 from ai_detection.explanation.explain import LimeExplanation, ShapExplanation
 from ai_detection.generator.generate import Generator
 from ai_detection.topic.my_bertopic import create_topic
 from ai_detection.utils.everyai_path import (BERT_TOPIC_CONFIG_PATH,
-                                        CLASSIFY_CONFIG_PATH,
-                                        DATA_LOAD_CONFIG_PATH, DATA_PATH,
-                                        FIG_PATH, GENERATE_CONFIG_PATH)
+                                             CLASSIFY_CONFIG_PATH,
+                                             DATA_LOAD_CONFIG_PATH, DATA_PATH,
+                                             FIG_PATH, GENERATE_CONFIG_PATH)
 from ai_detection.utils.load_config import get_config
 
 
@@ -30,9 +31,7 @@ def generate():
         data_loader = Data_loader(
             **data_config,
         )
-        max_count = (
-            data_config["max_count"] if "max_count" in data_config else None
-        )
+        max_count = data_config["max_count"] if "max_count" in data_config else None
         qa_datas = data_loader.load_data(max_count=max_count)
         everyai_dataset = EveryaiDataset(
             datas=pd.DataFrame(qa_datas),
@@ -45,9 +44,7 @@ def generate():
         for generate_config in generate_list_configs["generate_list"]:
             logging.info("Generate config: %s", generate_config)
             generator = Generator(config=generate_config)
-            for data in tqdm(
-                qa_datas, desc="Generating data", total=len(qa_datas)
-            ):
+            for data in tqdm(qa_datas, desc="Generating data", total=len(qa_datas)):
                 if everyai_dataset.record_exist(
                     data["question"], generate_config["model_name"]
                 ):

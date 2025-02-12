@@ -24,18 +24,14 @@ def truncate_and_pad_single_sequence(seq, max_length):
 class FeatureFusionBertTokenizer:
     def __init__(self, feature_len, **kwargs):
         self.feature_len = feature_len
-        self.sentiment_max_length = kwargs.get(
-            "sentiment_max_length", feature_len
-        )
+        self.sentiment_max_length = kwargs.get("sentiment_max_length", feature_len)
         self.nlp = spacy.load("en_core_web_sm")
         self.all_tags = self.nlp.get_pipe("tagger").labels
         self.sentiment_analyzer = SentimentIntensityAnalyzer()
         self.bert_model = BertForSequenceClassification.from_pretrained(
             "bert-base-uncased"
         )
-        self.bert_tokenzier = BertTokenizer.from_pretrained(
-            "bert-base-uncased"
-        )
+        self.bert_tokenzier = BertTokenizer.from_pretrained("bert-base-uncased")
 
     def semantic(self, text: str, **kwargs):
         tokenzied = self.bert_tokenzier(
@@ -58,9 +54,9 @@ class FeatureFusionBertTokenizer:
             if token.is_stop or token.is_punct:
                 sentiment = 0.0
             else:
-                sentiment = self.sentiment_analyzer.polarity_scores(
-                    token.text
-                )["compound"]
+                sentiment = self.sentiment_analyzer.polarity_scores(token.text)[
+                    "compound"
+                ]
             word_sentiment.append(sentiment)
         sentiment = torch.tensor(word_sentiment, dtype=torch.float)
         return self._padding(sentiment)
@@ -75,12 +71,8 @@ class FeatureFusionBertTokenizer:
         return self._padding(pos)
 
     def _padding(self, input_tensor):
-        input_tensor = truncate_and_pad_single_sequence(
-            input_tensor, self.feature_len
-        )
-        attention_mask = torch.tensor(
-            [1] * len(input_tensor), dtype=torch.float
-        )
+        input_tensor = truncate_and_pad_single_sequence(input_tensor, self.feature_len)
+        attention_mask = torch.tensor([1] * len(input_tensor), dtype=torch.float)
         return input_tensor.unsqueeze(0), attention_mask.unsqueeze(0)
 
     def __call__(self, text: str):
@@ -111,9 +103,7 @@ class FeatureFusionBertTokenizer:
 
 
 class HFeatureFusion(nn.Module):
-    def __init__(
-        self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1
-    ):
+    def __init__(self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1):
         super().__init__()
         self.feature_num = feature_num
         self.feature_len = feature_len
@@ -151,9 +141,7 @@ class HFeatureFusion(nn.Module):
 
 
 class CrossAttentionFeatureFusion(nn.Module):
-    def __init__(
-        self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1
-    ):
+    def __init__(self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1):
         super().__init__()
         self.feature_len = feature_len
         self.num_heads = num_heads
@@ -255,19 +243,17 @@ if __name__ == "__main__":
     for epoch in range(num_epochs):
         for step, batch in enumerate(train_dataloader):
             for feature in ["semantic", "pos", "sentiment"]:
-                batch[feature]["input_ids"] = batch[feature]["input_ids"].to(
+                batch[feature]["input_ids"] = batch[feature]["input_ids"].to(device)
+                batch[feature]["attention_mask"] = batch[feature]["attention_mask"].to(
                     device
                 )
-                batch[feature]["attention_mask"] = batch[feature][
-                    "attention_mask"
-                ].to(device)
             optimizer.zero_grad()
-            outputs = model(
-                batch["semantic"], batch["pos"], batch["sentiment"]
-            )
+            outputs = model(batch["semantic"], batch["pos"], batch["sentiment"])
             loss = F.cross_entropy(outputs, batch["labels"].to(device))
             loss.backward()
             optimizer.step()
             lr_scheduler.step()
             if step % 100 == 0:
-                print(f"Epoch {epoch + 1}, step {step + 1} completed with loss: {loss.item()}")
+                print(
+                    f"Epoch {epoch + 1}, step {step + 1} completed with loss: {loss.item()}"
+                )

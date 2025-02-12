@@ -2,13 +2,11 @@ from pathlib import Path
 
 import yaml
 
-from ai_detection.utils.everyai_path import (
-    BERT_TOPIC_CONFIG_PATH,
-    CLASSIFY_CONFIG_PATH,
-    DATA_LOAD_CONFIG_PATH,
-    GENERATE_CONFIG_PATH,
-    MONGO_CONFIG_PATH,
-)
+from ai_detection.utils.everyai_path import (BERT_TOPIC_CONFIG_PATH,
+                                             CLASSIFY_CONFIG_PATH,
+                                             DATA_LOAD_CONFIG_PATH,
+                                             GENERATE_CONFIG_PATH,
+                                             MONGO_CONFIG_PATH)
 
 
 def get_config(file_path: Path):

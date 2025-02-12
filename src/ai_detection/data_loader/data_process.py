@@ -5,7 +5,8 @@ from pathlib import Path
 
 import jieba
 
-from ai_detection.utils.everyai_path import EN_STOP_WORD_PATH, ZH_STOP_WORD_PATH
+from ai_detection.utils.everyai_path import (EN_STOP_WORD_PATH,
+                                             ZH_STOP_WORD_PATH)
 
 
 def remove_punctuation(text: str) -> str:

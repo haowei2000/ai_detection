@@ -1,6 +1,7 @@
 import logging
 
 from openai import OpenAI
+
 from ai_detection.utils.proxy import TempProxy
 
 
@@ -17,9 +18,7 @@ def openai_generate(
         logging.info("Proxy started: %s", proxy)
     client = OpenAI(api_key=api_key, base_url=base_url)
     messages = [{"role": "user", "content": user_input}]
-    result = client.chat.completions.create(
-        messages=messages, model=model_name
-    )
+    result = client.chat.completions.create(messages=messages, model=model_name)
     if proxy is not None:
         temp_proxy.reset_proxy()
         logging.info("Proxy reset")
