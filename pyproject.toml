@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "everyai"
+name = "ai_detection"
 version = "0.1.0"
 description = ""
 authors = ["Wang Haowei <hw_wang@whu.edu.cn>"]
 readme = "README.md"
-packages = [{ include = "everyai", from = "src" }]
+packages = [{ include = "ai_detection", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "3.12.2"
@@ -52,10 +52,10 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-generate = "everyai.main:generate"
-topic = "everyai.main:topic"
-classify = "everyai.main:classify"
-every = "everyai.main:main"
+generate = "ai_detection.main:generate"
+topic = "ai_detection.main:topic"
+classify = "ai_detection.main:classify"
+every = "ai_detection.main:main"
 
 [[tool.poetry.source]]
 name = "nvidia"
