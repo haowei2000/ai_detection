@@ -30,9 +30,7 @@ def generate():
         data_loader = Data_loader(
             **data_config,
         )
-        max_count = (
-            data_config["max_count"] if "max_count" in data_config else None
-        )
+        max_count = data_config["max_count"] if "max_count" in data_config else None
         qa_datas = data_loader.load_data(max_count=max_count)
         everyai_dataset = EveryaiDataset(
             datas=pd.DataFrame(qa_datas),
@@ -45,9 +43,7 @@ def generate():
         for generate_config in generate_list_configs["generate_list"]:
             logging.info("Generate config: %s", generate_config)
             generator = Generator(config=generate_config)
-            for data in tqdm(
-                qa_datas, desc="Generating data", total=len(qa_datas)
-            ):
+            for data in tqdm(qa_datas, desc="Generating data", total=len(qa_datas)):
                 if everyai_dataset.record_exist(
                     data["question"], generate_config["model_name"]
                 ):
