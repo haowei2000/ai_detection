@@ -24,18 +24,14 @@ def truncate_and_pad_single_sequence(seq, max_length):
 class FeatureFusionBertTokenizer:
     def __init__(self, feature_len, **kwargs):
         self.feature_len = feature_len
-        self.sentiment_max_length = kwargs.get(
-            "sentiment_max_length", feature_len
-        )
+        self.sentiment_max_length = kwargs.get("sentiment_max_length", feature_len)
         self.nlp = spacy.load("en_core_web_sm")
         self.all_tags = self.nlp.get_pipe("tagger").labels
         self.sentiment_analyzer = SentimentIntensityAnalyzer()
         self.bert_model = BertForSequenceClassification.from_pretrained(
             "bert-base-uncased"
         )
-        self.bert_tokenzier = BertTokenizer.from_pretrained(
-            "bert-base-uncased"
-        )
+        self.bert_tokenzier = BertTokenizer.from_pretrained("bert-base-uncased")
 
     def semantic(self, text: str, **kwargs):
         tokenzied = self.bert_tokenzier(
@@ -58,9 +54,9 @@ class FeatureFusionBertTokenizer:
             if token.is_stop or token.is_punct:
                 sentiment = 0.0
             else:
-                sentiment = self.sentiment_analyzer.polarity_scores(
-                    token.text
-                )["compound"]
+                sentiment = self.sentiment_analyzer.polarity_scores(token.text)[
+                    "compound"
+                ]
             word_sentiment.append(sentiment)
         sentiment = torch.tensor(word_sentiment, dtype=torch.float)
         return self._padding(sentiment)
@@ -75,12 +71,8 @@ class FeatureFusionBertTokenizer:
         return self._padding(pos)
 
     def _padding(self, input_tensor):
-        input_tensor = truncate_and_pad_single_sequence(
-            input_tensor, self.feature_len
-        )
-        attention_mask = torch.tensor(
-            [1] * len(input_tensor), dtype=torch.float
-        )
+        input_tensor = truncate_and_pad_single_sequence(input_tensor, self.feature_len)
+        attention_mask = torch.tensor([1] * len(input_tensor), dtype=torch.float)
         return input_tensor.unsqueeze(0), attention_mask.unsqueeze(0)
 
     def __call__(self, text: str):
@@ -112,9 +104,7 @@ class FeatureFusionBertTokenizer:
 
 
 class HFeatureFusion(nn.Module):
-    def __init__(
-        self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1
-    ):
+    def __init__(self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1):
         super().__init__()
         self.feature_num = feature_num
         self.feature_len = feature_len
@@ -149,9 +139,7 @@ class HFeatureFusion(nn.Module):
 
 
 class CrossAttentionFeatureFusion(nn.Module):
-    def __init__(
-        self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1
-    ):
+    def __init__(self, feature_num, feature_len, output_dim, num_heads=4, dropout=0.1):
         super().__init__()
         self.feature_len = feature_len
         self.num_heads = num_heads
@@ -220,9 +208,7 @@ class FeatureFusionBertClassfier(pl.LightningModule):
     def forward(self, *features):
         self.train()  # Set all modules to train
         for feature in features:
-            feature["input_ids"] = F.normalize(
-                feature["input_ids"], p=2, dim=-1
-            )
+            feature["input_ids"] = F.normalize(feature["input_ids"], p=2, dim=-1)
         fused_features = self.fusion_module(*features)
         encoder_output = self.encoder(fused_features)
         pooler_output = self.pooler(encoder_output[0])
@@ -241,9 +227,7 @@ class FeatureFusionBertClassfier(pl.LightningModule):
         y_pred = torch.argmax(outputs, dim=-1)
         y_test = batch["labels"]
         acc = (y_pred == y_test).sum().float() / len(y_test)
-        f1 = f1_score(
-            y_test.cpu().numpy(), y_pred.cpu().numpy(), average="weighted"
-        )
+        f1 = f1_score(y_test.cpu().numpy(), y_pred.cpu().numpy(), average="weighted")
         self.log("test_acc", acc)
         self.log("test_f1", f1)
         return {"test_acc": acc, "test_f1": f1}
@@ -255,9 +239,7 @@ class FeatureFusionBertClassfier(pl.LightningModule):
         self.log("avg_test_f1", avg_f1, prog_bar=True)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
-            self.parameters(), lr=self.lr, momentum=0.9
-        )
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr, momentum=0.9)
         scheduler = get_scheduler(
             name="linear",
             optimizer=optimizer,
@@ -318,8 +300,8 @@ class FeatureFusionDataModule(pl.LightningDataModule):
         pass
 
     def setup(self, stage=None):
-        self.tokenizer: FeatureFusionBertTokenizer = (
-            FeatureFusionBertTokenizer(feature_len=768)
+        self.tokenizer: FeatureFusionBertTokenizer = FeatureFusionBertTokenizer(
+            feature_len=768
         )
         if not isinstance(self.tokenizer, FeatureFusionBertTokenizer):
             raise TypeError(

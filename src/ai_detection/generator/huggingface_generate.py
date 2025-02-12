@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import transformers
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def glm4(
@@ -38,7 +38,7 @@ def glm4(
         return_tensors="pt",
         add_generation_prompt=True,
         return_dict=True,
-        template="default"  # Add this line to specify the template
+        template="default",  # Add this line to specify the template
     ).to(model.device)
 
     input_len = inputs["input_ids"].shape[1]
@@ -81,13 +81,15 @@ def qwen2_5(
             },
             {"role": "user", "content": user_input},
         ]
-        
+
         text = tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
     else:
         text = user_input
-        logging.warning("No chat template found in tokenizer. Using user input as text.")
+        logging.warning(
+            "No chat template found in tokenizer. Using user input as text."
+        )
     model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
 
     generated_ids = model.generate(**model_inputs, **gen_kwargs)

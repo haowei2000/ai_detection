@@ -65,9 +65,7 @@ class Data_loader:
         if max_count is not None and loaded_data is not None:
             loaded_data = loaded_data.head(max_count)
         else:
-            logging.info(
-                "Max count is None and all the records will be loaded"
-            )
+            logging.info("Max count is None and all the records will be loaded")
         loaded_data.rename(
             columns={
                 self.question_column: "question",
@@ -78,9 +76,7 @@ class Data_loader:
         if return_type == "pandas":
             result = loaded_data
         elif return_type == "list":
-            result = loaded_data[["question", "answer"]].to_dict(
-                orient="records"
-            )
+            result = loaded_data[["question", "answer"]].to_dict(orient="records")
         else:
             logging.error("Invalid return type")
         return result

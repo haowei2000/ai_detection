@@ -6,7 +6,8 @@ import pandas as pd
 from sklearn.calibration import LabelEncoder
 from sklearn.model_selection import train_test_split
 
-from ai_detection.data_loader.data_process import split_remove_stopwords_punctuation
+from ai_detection.data_loader.data_process import \
+    split_remove_stopwords_punctuation
 from ai_detection.utils.everyai_path import MODEL_PATH
 from ai_detection.utils.load_args import set_attrs_2class
 
@@ -50,23 +51,19 @@ def split_data(
     """
     assert len(x) == len(y), "Length of x and y should be same"
     original_indices = pd.DataFrame(x).index
-    x_train, x_test, y_train, y_test, indices_train, indices_test = (
-        train_test_split(
-            x,
-            y,
-            original_indices,
-            train_size=train_size,
-            random_state=42,
-        )
+    x_train, x_test, y_train, y_test, indices_train, indices_test = train_test_split(
+        x,
+        y,
+        original_indices,
+        train_size=train_size,
+        random_state=42,
     )
-    x_test, x_valid, y_test, y_valid, indices_train, indices_valid = (
-        train_test_split(
-            x_test,
-            y_test,
-            indices_test,
-            test_size=test_size / (test_size + valid_size),
-            random_state=42,
-        )
+    x_test, x_valid, y_test, y_valid, indices_train, indices_valid = train_test_split(
+        x_test,
+        y_test,
+        indices_test,
+        test_size=test_size / (test_size + valid_size),
+        random_state=42,
     )
     return (
         x_train,
@@ -157,8 +154,7 @@ class TextClassifer:
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
         )
         self.model_path = (
-            MODEL_PATH
-            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
+            MODEL_PATH / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
         if self.split_size is not None:
             self.train_size = self.split_size.get("train_size", 0.8)
@@ -175,9 +171,7 @@ class TextClassifer:
             raise ValueError("Length of texts and labels should be same")
         self.texts = texts
         self.labels = labels
-        logging.info(
-            "Loading data: %s to classifier %s", data_name, self.model_name
-        )
+        logging.info("Loading data: %s to classifier %s", data_name, self.model_name)
         self.data_name = data_name
         self.classifier_name = (
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"

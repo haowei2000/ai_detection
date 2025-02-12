@@ -4,13 +4,11 @@ import pytorch_lightning as pl
 import torch
 from lightning.pytorch.loggers import WandbLogger
 
-from ai_detection.classifier.classify import TextClassifer, label_encode, split_data
+from ai_detection.classifier.classify import (TextClassifer, label_encode,
+                                              split_data)
 from ai_detection.classifier.multi_feature_model.fusionBert import (
-    CrossAttentionFeatureFusion,
-    FeatureFusionBertClassfier,
-    FeatureFusionDataModule,
-    HFeatureFusion,
-)
+    CrossAttentionFeatureFusion, FeatureFusionBertClassfier,
+    FeatureFusionDataModule, HFeatureFusion)
 
 
 class PLClassifer(TextClassifer):

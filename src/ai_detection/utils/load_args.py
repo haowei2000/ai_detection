@@ -11,7 +11,9 @@ classfiy_allowed_keys = [
 ]
 
 
-def set_attrs_2class(self, classify_config:dict, allowed_keys:list, default_keys:list):
+def set_attrs_2class(
+    self, classify_config: dict, allowed_keys: list, default_keys: list
+):
     """Set attributes for classification.
 
     Sets attributes based on the provided configuration, default values, and necessary keys.
@@ -31,4 +33,3 @@ def set_attrs_2class(self, classify_config:dict, allowed_keys:list, default_keys
         if key not in classify_config:
             setattr(self, key, None)
             logging.warning("Default key not provided: %s", key)
-        

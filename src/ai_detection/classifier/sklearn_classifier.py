@@ -20,7 +20,8 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
-from ai_detection.classifier.classify import TextClassifer, label_encode, split_data
+from ai_detection.classifier.classify import (TextClassifer, label_encode,
+                                              split_data)
 from ai_detection.utils.everyai_path import RESULT_PATH
 
 
@@ -141,9 +142,7 @@ def _init_sklearn_pipeline(pipeline_config: list[dict]):
             step_params = pipeline_config[step_name]
             steps.append((step_name, step_dict[step_name](**step_params)))
         else:
-            logging.warning(
-                "Step %s not recognized and will be skipped", step_name
-            )
+            logging.warning("Step %s not recognized and will be skipped", step_name)
     return make_pipeline(*[step[1] for step in steps])
 
 
@@ -234,7 +233,11 @@ class SklearnClassifer(TextClassifer):
         return self.model.predict(x)
 
     def show_score(self):
-        output_path = RESULT_PATH/ "classfiy_result"/ f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        output_path = (
+            RESULT_PATH
+            / "classfiy_result"
+            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
+        )
         self.score = evaluate_classification_model(
             self.data.y_test,
             self.data.y_pred,
