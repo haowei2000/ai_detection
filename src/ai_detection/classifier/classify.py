@@ -44,35 +44,42 @@ def label_encode(labels: list[str]):
 
 def split_data(
     x: list, y: list, train_size=0.8, valid_size=0.1, test_size=0.1
-) ->tuple[list,list,list,list,list,list,list,list,list]:  # -> tuple:
+) -> tuple[list, list, list, list, list, list, list, list, list]:  # -> tuple:
     """
     split_data is a function to split the data into train, valid and test sets
     tips: split_data is design for getting the index for train, valid and test set
     """
     assert len(x) == len(y), "Length of x and y should be same"
     original_indices = pd.DataFrame(x).index
-    x_train, x_test, y_train, y_test, indices_train, indices_test = (
-        train_test_split(
-            x,
-            y,
-            original_indices,
-            train_size=train_size,
-            random_state=42,
-        )
+    x_train, x_test, y_train, y_test, indices_train, indices_test = train_test_split(
+        x,
+        y,
+        original_indices,
+        train_size=train_size,
+        random_state=42,
     )
-    x_test, x_valid, y_test, y_valid, indices_train, indices_valid = (
-        train_test_split(
+    x_test, x_valid, y_test, y_valid, indices_train, indices_valid = train_test_split(
+        x_test,
+        y_test,
+        indices_test,
+        test_size=test_size / (test_size + valid_size),
+        random_state=42,
+    )
+    if not all(
+        isinstance(i, list)
+        for i in [
+            x_train,
+            x_valid,
             x_test,
+            y_train,
+            y_valid,
             y_test,
+            indices_train,
+            indices_valid,
             indices_test,
-            test_size=test_size / (test_size + valid_size),
-            random_state=42,
-        )
-    )
-    if not all(isinstance(i, list) for i in [x_train, x_valid, x_test, y_train, y_valid, y_test, indices_train, indices_valid, indices_test]):
-        raise ValueError(
-            "x_train, x_valid, x_test should be list or np.array"
-        )
+        ]
+    ):
+        raise ValueError("x_train, x_valid, x_test should be list or np.array")
     return (
         x_train,
         x_valid,
@@ -93,18 +100,18 @@ class TextClassifer:
 
     def __init__(
         self,
-        texts: list[str]|None = None,
-        labels: list[str]|None = None,
+        texts: list[str] | None = None,
+        labels: list[str] | None = None,
         data_name: str = "",
         language: str = "English",
         model_name: str = "bert-base-uncased",
         tokenizer_name: str = "bert-base-uncased",
         classifier_type: str = "transformers",
-        split_size: dict|None = None,
-        train_args: dict|None = None,
-        tokenizer_config: dict|None = None,
-        model_config: dict|None = None,
-        pipeline: list[str]|None = None,
+        split_size: dict | None = None,
+        train_args: dict | None = None,
+        tokenizer_config: dict | None = None,
+        model_config: dict | None = None,
+        pipeline: list[str] | None = None,
     ):
         """
         Allowed and default keys for classify_config are:
@@ -161,15 +168,17 @@ class TextClassifer:
         self.tokenizer_config = tokenizer_config if tokenizer_config is not None else {}
         self.model_config = model_config if model_config is not None else {}
         self.pipeline = pipeline if pipeline is not None else []
-        self.split_size = split_size if split_size is not None else {"train_size": 0.8, "test_size": 0.1, "valid_size": 0.1}
+        self.split_size = (
+            split_size
+            if split_size is not None
+            else {"train_size": 0.8, "test_size": 0.1, "valid_size": 0.1}
+        )
         self.classifier_name = (
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
         )
         self.model_path = (
-            MODEL_PATH
-            / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
+            MODEL_PATH / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
-
 
     def load_data(self, texts, labels, data_name):
         """
@@ -181,9 +190,7 @@ class TextClassifer:
             raise ValueError("Length of texts and labels should be same")
         self.texts = texts
         self.labels = labels
-        logging.info(
-            "Loading data: %s to classifier %s", data_name, self.model_name
-        )
+        logging.info("Loading data: %s to classifier %s", data_name, self.model_name)
         self.data_name = data_name
         self.classifier_name = (
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"

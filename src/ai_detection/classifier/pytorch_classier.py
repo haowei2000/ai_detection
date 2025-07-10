@@ -3,13 +3,19 @@ import logging
 import datasets
 import evaluate
 import torch
-from transformers import (AutoTokenizer, DataCollatorWithPadding,
-                          PreTrainedTokenizerBase, Trainer, TrainingArguments)
+from transformers import (
+    AutoTokenizer,
+    DataCollatorWithPadding,
+    PreTrainedTokenizerBase,
+    Trainer,
+    TrainingArguments,
+)
 
-from ai_detection.classifier.classify import (TextClassifer, label_encode,
-                                              split_data)
+from ai_detection.classifier.classify import TextClassifer, label_encode, split_data
 from ai_detection.classifier.multi_feature_model.fusionBert_backup import (
-    FeatureFusionBertClassfier, FeatureFusionBertTokenizer)
+    FeatureFusionBertClassfier,
+    FeatureFusionBertTokenizer,
+)
 from ai_detection.utils.everyai_path import MODEL_PATH
 
 
