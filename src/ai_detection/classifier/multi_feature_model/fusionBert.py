@@ -10,9 +10,11 @@ from lightning.pytorch.loggers import WandbLogger
 from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from transformers import BertForSequenceClassification, BertTokenizer
+from transformers import BertForSequenceClassification, BertTokenizer, PreTrainedTokenizerBase
 from transformers.optimization import get_scheduler
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+import spacy
 
 
 def truncate_and_pad_single_sequence(seq, max_length):
@@ -21,7 +23,7 @@ def truncate_and_pad_single_sequence(seq, max_length):
     return F.pad(truncated_seq, (0, padding), value=0)
 
 
-class FeatureFusionBertTokenizer:
+class FeatureFusionBertTokenizer(PreTrainedTokenizerBase):
     def __init__(self, feature_len, **kwargs):
         self.feature_len = feature_len
         self.sentiment_max_length = kwargs.get(
@@ -256,7 +258,8 @@ class FeatureFusionBertClassfier(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
-            self.parameters(), lr=self.lr, momentum=0.9
+            self.parameters(),
+            lr=self.lr,
         )
         scheduler = get_scheduler(
             name="linear",

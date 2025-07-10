@@ -4,7 +4,7 @@ import spacy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from datasets import load_dataset
+from datasets import load_dataset,Dataset
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -51,7 +51,7 @@ class FeatureFusionBertTokenizer:
             embedding = torch.mean(embedding, dim=1, keepdim=False)
         return embedding, torch.ones_like(embedding)
 
-    def analyze_word_level_sentiment(self, text: str) -> torch.tensor:
+    def analyze_word_level_sentiment(self, text: str) ->tuple:
         doc = self.nlp(text)
         word_sentiment = []
         for token in doc:
@@ -65,14 +65,16 @@ class FeatureFusionBertTokenizer:
         sentiment = torch.tensor(word_sentiment, dtype=torch.float)
         return self._padding(sentiment)
 
-    def pos_feature(self, text: str) -> torch.tensor:
+    def pos_feature(self, text: str) -> tuple:
         doc = self.nlp(text)
         text_tags = [token.tag_ for token in doc]
         pos = torch.tensor(
             [text_tags.count(label) for label in self.all_tags],
             dtype=torch.float,
         )
-        return self._padding(pos)
+        posed = self._padding(pos)
+        return posed if isinstance(posed, tuple) else posed
+
 
     def _padding(self, input_tensor):
         input_tensor = truncate_and_pad_single_sequence(
@@ -127,13 +129,17 @@ class HFeatureFusion(nn.Module):
         self.feature_fusion_dim = (feature_num - 1) * feature_len
         self.fc = nn.Linear(self.feature_fusion_dim, output_dim)
 
-    def forward(self, *features: torch.tensor):
+    def forward(self, features:list[dict[str, torch.Tensor]]):
         if len(features) != self.feature_num:
             raise ValueError(
                 f"Expected {self.feature_num} features, but got {len(features)}"
             )
         outputs = []
         for i in range(self.feature_num - 1):
+            if "input_ids" not in features[i]:
+                raise ValueError(
+                    f"Expected 'input_ids' in feature {i}, but got {features[i]}"
+                )
             key = features[i]["input_ids"] if i == 0 else outputs[i - 1]
             query = features[i + 1]["input_ids"]
             value = features[i + 1]["input_ids"]
@@ -167,11 +173,12 @@ class CrossAttentionFeatureFusion(nn.Module):
         feature_fusion_dim = math.perm(feature_num, 2) * feature_len
         self.fc = nn.Linear(feature_fusion_dim, output_dim)
 
-    def forward(self, *features: torch.tensor):
+    def forward(self, features: torch.Tensor):
         if len(features) != self.feature_num:
             raise ValueError(
                 f"Expected {self.feature_num} features, but got {len(features)}"
             )
+
         outputs = []
         for i in range(self.feature_num):
             for j in range(self.feature_num):
@@ -202,6 +209,7 @@ class FeatureFusionBertClassfier(nn.Module):
         )
         self.encoder = bert_classifier.bert.encoder
         self.pooler = bert_classifier.bert.pooler
+        
         self.fusion_module = CrossAttentionFeatureFusion(
             feature_num=feature_num,
             feature_len=feature_len,
@@ -213,6 +221,8 @@ class FeatureFusionBertClassfier(nn.Module):
     def forward(self, *features):
         fused_features = self.fusion_module(*features)
         encoder_output = self.encoder(fused_features)
+        if self.pooler is None:
+            raise ValueError("Pooler is not defined in the model.")
         pooler_output = self.pooler(encoder_output[0])
         pooler_output = self.dropout(pooler_output)
         output = self.classfier(pooler_output)
@@ -235,7 +245,8 @@ class FeatureFusionDataset(torch.utils.data.Dataset):
 
 if __name__ == "__main__":
     dataset = load_dataset("imdb")
-    test_input = dataset["train"].select(range(1000))
+    if isinstance(dataset, Dataset):
+        test_input = dataset["train"].select(range(1000))
     tokenizer = FeatureFusionBertTokenizer(feature_len=768)
     tokenized_input = tokenizer.batch_encode_plus(test_input["text"])
     train_dataset = FeatureFusionDataset(tokenized_input, test_input["label"])

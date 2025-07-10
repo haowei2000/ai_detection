@@ -37,13 +37,14 @@ def label_encode(labels: list[str]):
     """
     encoder = LabelEncoder()
     labels_encoded = encoder.fit_transform(labels)
+    labels_encoded = np.array(labels_encoded).tolist()
     logging.info("Labels encoded %s", dict(zip(labels, labels_encoded)))
     return encoder, labels_encoded
 
 
 def split_data(
-    x: np.array, y: np.array, train_size=0.8, valid_size=0.1, test_size=0.1
-):  # -> tuple:
+    x: list, y: list, train_size=0.8, valid_size=0.1, test_size=0.1
+) ->tuple[list,list,list,list,list,list,list,list,list]:  # -> tuple:
     """
     split_data is a function to split the data into train, valid and test sets
     tips: split_data is design for getting the index for train, valid and test set
@@ -68,6 +69,10 @@ def split_data(
             random_state=42,
         )
     )
+    if not all(isinstance(i, list) for i in [x_train, x_valid, x_test, y_train, y_valid, y_test, indices_train, indices_valid, indices_test]):
+        raise ValueError(
+            "x_train, x_valid, x_test should be list or np.array"
+        )
     return (
         x_train,
         x_valid,
@@ -88,11 +93,18 @@ class TextClassifer:
 
     def __init__(
         self,
-        texts: list[str] = None,
-        labels: list[str] = None,
+        texts: list[str]|None = None,
+        labels: list[str]|None = None,
         data_name: str = "",
         language: str = "English",
-        **classify_config,
+        model_name: str = "bert-base-uncased",
+        tokenizer_name: str = "bert-base-uncased",
+        classifier_type: str = "transformers",
+        split_size: dict|None = None,
+        train_args: dict|None = None,
+        tokenizer_config: dict|None = None,
+        model_config: dict|None = None,
+        pipeline: list[str]|None = None,
     ):
         """
         Allowed and default keys for classify_config are:
@@ -136,23 +148,20 @@ class TextClassifer:
             }
         - pipeline: list
         """
-        default_keys = [
-            "model_name",
-            "tokenizer_name",
-            "classifier_type",
-            "split_size",
-            "train_args",
-            "tokenizer_config",
-            "pipeline",
-            "model_config",
-        ]
-        set_attrs_2class(self, classify_config, default_keys, default_keys)
         self.texts = texts
         self.labels = labels
         self.data_name = data_name
         self.language = language
         self.score = None
         self.data = classifierData()
+        self.model_name = model_name
+        self.tokenizer_name = tokenizer_name
+        self.classifier_type = classifier_type
+        self.train_args = train_args if train_args is not None else {}
+        self.tokenizer_config = tokenizer_config if tokenizer_config is not None else {}
+        self.model_config = model_config if model_config is not None else {}
+        self.pipeline = pipeline if pipeline is not None else []
+        self.split_size = split_size if split_size is not None else {"train_size": 0.8, "test_size": 0.1, "valid_size": 0.1}
         self.classifier_name = (
             f"{self.model_name}_{self.tokenizer_name}_{self.data_name}"
         )
@@ -160,10 +169,7 @@ class TextClassifer:
             MODEL_PATH
             / f"{self.model_name}_{self.tokenizer_name}_{self.data_name}.pkl"
         )
-        if self.split_size is not None:
-            self.train_size = self.split_size.get("train_size", 0.8)
-            self.test_size = self.split_size.get("test_size", 0.1)
-            self.valid_size = self.split_size.get("valid_size", 0.1)
+
 
     def load_data(self, texts, labels, data_name):
         """
@@ -189,6 +195,9 @@ class TextClassifer:
         process_data is a function to process the data before training.
         the default procession is to split, remove stopwords and punctuation.
         """
+        if self.texts is None:
+            logging.error("Texts are not loaded")
+            raise ValueError("Texts are not loaded")
         self.texts = list(
             map(
                 lambda text: split_remove_stopwords_punctuation(

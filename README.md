@@ -59,7 +59,7 @@ ai_detection: For any QA text dataset (question and human response), generate AI
 
 ```
 filetree 
-├── poetry.lock
+├── uv.lock
 ├── pyproject.toml
 ├── LICENSE.txt
 ├── README.md
@@ -88,13 +88,13 @@ To get a local copy up and running follow these simple steps.
 
 ## Prerequisites
 
-![Poetry](https://img.shields.io/badge/Poetry-1.8.3-blue)
+![uv](https://img.shields.io/badge/uv-1.8.3-blue)
 ![CUDA](https://img.shields.io/badge/CUDA-12.7-green)
 ![Python](https://img.shields.io/badge/Python-3.12.7-yellow)
 
 ## **Installation Steps**
 
-1. Install [Poetry](https://python-poetry.org/) from the offical website.
+1. Install [uv](https://python-uv.org/) from the offical website.
 2. Clone the repo
 
     ```sh
@@ -109,10 +109,10 @@ To get a local copy up and running follow these simple steps.
 
     If the python is mot compatible, you can install python environment with `pyenv` or [conda](https://anaconda.org/anaconda/conda).
 
-4. Install the dependencies with poetry
+4. Install the dependencies with uv
 
     ```sh
-    poetry install
+    uv sync
     ```
 
 5. Run the project
@@ -120,25 +120,25 @@ To get a local copy up and running follow these simple steps.
       - Generate AI response with the dataset in [data.yaml](src/ai_detection/config/data.yaml) and the AI model in [generate.yaml](src/ai_detection/config/generate.yaml)
 
         ```sh
-        poetry run generate
+        uv run generate
         ```
 
       - Perform topic analysis with bertopic([topic.yaml](src/ai_detection/config/topic.yaml)), please run the command after generating the AI response.
 
         ```sh
-        poetry run topic
+        uv run topic
         ```
 
       - classify between human responses and AI responses with the dataset in [data.yaml](src/ai_detection/config/data.yaml) and the classifier model in [classify.yaml](src/ai_detection/config/classify.yaml), and make explaination with `lime` ([lime.yaml](src/ai_detection/config/lime.yaml)) and `shap` (shap[shap.yaml](src/ai_detection/config/shap.yaml))
 
         ```sh
-        poetry run classify
+        uv run classify
         ```
 
       - Run the generate, topic, classify together
   
         ```sh
-        poetry run every
+        uv run every
         ```
 
 ## Optional Features
@@ -247,7 +247,7 @@ You can use the mongodb database to save and load the dataset, just set the mong
 
 # Frameworks Used
 
-- [Poetry](https://python-poetry.org)
+- [uv](https://python-uv.org)
 - [Huggingface](https://huggingface.co)
 
 # Contributors
@@ -278,7 +278,7 @@ This project is licensed under the MIT License. See [LICENSE.txt](https://github
 - [isort](https://connoratherton.com/loaders)
 - [LLaMA-Factory](https://llamafactory.readthedocs.io/zh-cn/latest/getting_started/inference.html)
 - [Huggingface](https://huggingface.co)
-- [Poetry](https://python-poetry.org)
+- [uv](https://python-uv.org)
 - [Best_README_template](https://github.com/shaojintian/Best_README_template)
 
 <!-- links -->

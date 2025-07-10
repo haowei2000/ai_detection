@@ -1,12 +1,10 @@
 import logging
 
 import pytorch_lightning as pl
-import torch
-from lightning.pytorch.loggers import WandbLogger
+from pytorch_lightning.loggers import WandbLogger
 
 from ai_detection.classifier.classify import TextClassifer, label_encode, split_data
 from ai_detection.classifier.multi_feature_model.fusionBert import (
-    CrossAttentionFeatureFusion,
     FeatureFusionBertClassfier,
     FeatureFusionDataModule,
     HFeatureFusion,
@@ -40,6 +38,8 @@ class PLClassifer(TextClassifer):
         self.label_encoder = None
 
     def _prepare_data(self):
+        if self.texts is None or self.labels is None:
+            raise ValueError("texts and labels should not be None")
         self.label_encoder, self.labels = label_encode(self.labels)
         (
             self.data.x_train,
