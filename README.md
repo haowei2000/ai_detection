@@ -1,7 +1,7 @@
 
 # ai_detection
 
-ai_detection: For any QA text dataset (question and human response), generate AI response, perform topic analysis with bertopic, classify between human responses and AI responses, and explain the model with [Lime](https://github.com/marcotcr/lime) and [Shap](https://github.com/slundberg/shap).
+ai_detection: For QA text dataset (question and human response), generate AI response, perform topic analysis with bertopic, classify between human responses and AI responses, and explain the model with [Lime](https://github.com/marcotcr/lime) and [Shap](https://github.com/slundberg/shap).
 <!-- PROJECT SHIELDS -->
 
 [![Contributors][contributors-shield]][contributors-url]
